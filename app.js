@@ -521,7 +521,7 @@ function goStep(delta) {
   }
   state.step = next;
   renderGuide();
-  $("guideCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  pointTo(activeSteps()[state.step].target);
 }
 function advanceSoon() {
   const flow = activeSteps(), completedStep = state.step;
@@ -534,7 +534,7 @@ function advanceSoon() {
     if (state.step === completedStep && activeSteps()[completedStep].done()) {
       state.step = completedStep + 1;
       renderGuide();
-      $("guideCard").scrollIntoView({ behavior: "smooth", block: "start" });
+      pointTo(activeSteps()[state.step].target);
     }
   }, 700);
 }

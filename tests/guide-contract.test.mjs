@@ -63,3 +63,9 @@ test("distancia y velocidad avanzan al alcanzar el rango guiado", () => {
   assert.match(app, /distance: mission === "contamination" \? 1\.5 : 50/);
   assert.match(app, /speed: 10/);
 });
+
+test("el avance mantiene el foco en el equipo", () => {
+  assert.doesNotMatch(app, /guideCard"\)\.scrollIntoView/);
+  const focusCalls = app.match(/pointTo\(activeSteps\(\)\[state\.step\]\.target\)/g) || [];
+  assert.ok(focusCalls.length >= 3, "el paso siguiente no señala su control real");
+});
