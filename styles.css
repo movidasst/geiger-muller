@@ -60,3 +60,5 @@
   .equipment{grid-template-columns:250px 360px;gap:82px}
   .probe-wrap{width:215px}
 }
+
+.probe-wrap{height:310px}.probe-settings{position:absolute;left:14px;right:14px;bottom:12px;display:grid;gap:8px}.probe-settings .distance,.probe-settings .speed-control{position:static;margin:0;border-radius:10px;padding:7px 9px;background:rgba(2,16,29,.76)}.probe-settings label{display:flex;justify-content:space-between;color:#9ce3e1;font-size:9px;font-weight:800;letter-spacing:.08em}.probe-settings input{width:100%;accent-color:var(--yellow)}.equipment{min-height:960px;grid-template-rows:310px auto}.pro-controls{grid-template-columns:repeat(3,1fr)}.data-panel .measurement{background:#f8fafc}.data-panel .measurement:before{content:"REGISTRO";align-self:flex-start;color:var(--teal);font-size:8px;font-weight:800;letter-spacing:.1em}.measurement>div{flex:1}.transport-measures span{color:var(--muted);font-size:12px}@media(min-width:760px){.probe-wrap{height:560px}.equipment{min-height:800px;grid-template-rows:auto}.probe-settings{bottom:15px}}

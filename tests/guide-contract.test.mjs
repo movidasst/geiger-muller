@@ -91,3 +91,11 @@ test("el paso de distancia indica el valor exacto", () => {
   assert.match(app, /Mover distancia hasta 1,0 m/);
   assert.match(app, /Mover distancia hasta 0,5 cm/);
 });
+
+test("todas las mediciones se ejecutan desde el instrumento", () => {
+  for (const forbidden of ["backgroundBtn", "confirmBtn", "surfaceDoseBtn", "oneMeterBtn", "calculateTIBtn", "startScan", "scanArea"]) assert.ok(!ids.has(forbidden), `permanece el control externo #${forbidden}`);
+  for (const required of ["countBtn", "scanBtn", "calcBtn"]) assert.ok(ids.has(required), `falta el botón físico #${required}`);
+  assert.match(app, /step\?\.target === "countBtn"/);
+  assert.match(app, /scanBtn"\)\.addEventListener\("click", startScanning\)/);
+  assert.match(app, /calcBtn"\)\.addEventListener\("click", calculateTI\)/);
+});
