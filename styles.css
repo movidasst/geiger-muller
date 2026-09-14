@@ -14,3 +14,7 @@
 .observe{margin-top:10px!important;border-radius:10px;padding:10px 11px;background:#eef6f7;color:#334155!important}.observe b{color:var(--navy)}
 .guide-card.complete{border-color:#70ad47;box-shadow:0 0 0 3px rgba(112,173,71,.12)}.guide-card.complete .guide-progress i{background:#70ad47}.guide-card.complete #guideAction{background:#70ad47}
 @media(min-width:760px){.active-config{grid-template-columns:1fr 1fr}.active-config p{grid-column:1/-1}}
+
+.instrument-stage.dose-probe .probe-face{width:82px;height:125px;border-width:7px;border-radius:38px 38px 18px 18px;padding:9px;background:linear-gradient(90deg,#263944,#92a3a8 45%,#1a2a34)}
+.instrument-stage.dose-probe .probe-face i{border-radius:28px 28px 10px 10px;background:linear-gradient(90deg,#17242b,#536970 48%,#142129);box-shadow:inset 0 0 12px #000}
+.instrument-stage.dose-probe .probe-neck{margin-top:-2px}.instrument-stage.dose-probe .probe-handle span{color:#9ee7df}

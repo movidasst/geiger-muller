@@ -569,6 +569,8 @@ function setMission(mission) {
   };
   [$("activeProbe").textContent, $("activeQuantity").textContent, $("activeUse").textContent] = configs[mission];
   $("meterLabel").textContent = contamination ? "MONITOR DE CONTAMINACIÓN · SONDA PANCAKE" : "MEDIDOR DE TASA DE DOSIS · RESPUESTA CALIBRADA";
+  document.querySelector(".instrument-stage").classList.toggle("dose-probe", !contamination);
+  $("probeTypeLabel").textContent = contamination ? "α · β · γ" : "H*(10) · γ";
   $("techniqueTitle").textContent = contamination ? "Técnica de barrido superficial" : "Técnica de reconocimiento radiológico";
   $("techniqueList").innerHTML = contamination
     ? "<li><b>Distancia:</b> 0,3–0,6 cm, sin tocar.</li><li><b>Velocidad:</b> 3–6 cm/s en este ejercicio.</li><li><b>Trayectoria:</b> pasadas paralelas ligeramente solapadas.</li><li><b>Resultado:</b> CPM bruto y neto; Bq/cm² exige calibración adicional.</li>"
