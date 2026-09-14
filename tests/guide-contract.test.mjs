@@ -78,3 +78,16 @@ test("cada misión carga únicamente escenarios compatibles", () => {
   assert.match(app, /configureMissionScenarios\(mission\);\s+resetScenario\(state\.scenario\)/);
   assert.match(app, /state\.scenario = allowed\[0\]/);
 });
+
+test("el barrido de campo siempre tiene ajuste de velocidad previo", () => {
+  for (const name of ["presenceSteps", "sourceSteps"]) {
+    const source = flowSource(name);
+    assert.ok(source.indexOf("fieldSpeedStep") < source.indexOf('target: "startScan"'), `${name} inicia el barrido antes de ajustar velocidad`);
+  }
+  assert.match(app, /Mueve el control desde 10 hasta 5 cm\/s/);
+});
+
+test("el paso de distancia indica el valor exacto", () => {
+  assert.match(app, /Mover distancia hasta 1,0 m/);
+  assert.match(app, /Mover distancia hasta 0,5 cm/);
+});
