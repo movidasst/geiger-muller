@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#00205b"><meta name="description" content="Simulador didáctico de contador Geiger-Müller de La Movida de SST Plus">
+  <title>Simulador Geiger-Müller | La Movida SST Plus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="auth-locked">
+  <main id="loginGate" class="login-gate">
+    <section class="login-hero">
+      <a class="login-brand" href="https://laboratorio.movidasst.com"><img src="https://raw.githubusercontent.com/movidasst/sonometro/main/assets/logo-movida-sst-plus.png" alt="Logo La Movida SST Plus"><span><b>La Movida de SST Plus</b><small>De la Reacción a la Prevención</small></span></a>
+      <div class="hero-copy"><p class="eyebrow">LABORATORIO DE HIGIENE OCUPACIONAL</p><h1>Medición de <em>radiación ionizante</em></h1><p>Aprende a buscar contaminación superficial con un contador Geiger‑Müller y una sonda pancake.</p></div>
+      <div class="hero-facts"><span><b>01</b>Fondo</span><span><b>02</b>Barrido</span><span><b>03</b>Confirmación</span></div>
+    </section>
+    <section class="login-card"><p class="eyebrow teal">PRÁCTICA EXCLUSIVA · INTEGRANTES</p><h2>Identifica tu acceso</h2><p>Usa la cédula y el código recibidos al registrarte.</p>
+      <form id="loginForm"><label for="memberId">Cédula de identidad</label><input id="memberId" inputmode="numeric" autocomplete="username" placeholder="Solo números" required>
+        <label for="memberPassword">Clave o código de integrante</label><div class="password-wrap"><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Escribe tu clave" required><button id="togglePassword" type="button">Mostrar</button></div>
+        <button id="loginSubmit" class="primary" type="submit"><span>Abrir simulador</span></button><p id="loginMessage" class="form-message" role="alert"></p>
+      </form><div class="register"><b>¿Aún no eres integrante?</b><span>El registro es gratuito.</span><a href="https://registro.movidasst.com">Registrarme ahora</a></div><small>La validación usa el registro oficial. No guardamos tus credenciales.</small>
+    </section>
+  </main>
+
+  <div id="appShell" hidden>
+    <header class="topbar"><a class="brand" href="https://laboratorio.movidasst.com"><img src="https://raw.githubusercontent.com/movidasst/sonometro/main/assets/logo-movida-sst-plus.png" alt="Logo"><span><b>La Movida de SST Plus</b><small>Laboratorio Virtual</small></span></a><div class="session"><span>Hola, <b id="memberName">integrante</b></span><button id="logoutBtn">Salir</button></div></header>
+    <nav class="modebar" aria-label="Modos del simulador"><button class="mode active" data-mode="guided">Modo guiado</button><button class="mode" data-mode="free">Práctica libre</button><button class="mode" data-mode="concepts">Conceptos</button></nav>
+
+    <main class="app-main">
+      <section id="simulationView">
+        <div class="intro"><div><p class="eyebrow slate">SIMULADOR DE RADIACIONES IONIZANTES</p><h1>Busca, confirma e interpreta</h1><p>Instrumento didáctico de contaminación superficial inspirado en equipos profesionales.</p></div><div class="scope-warning"><b>No es un medidor de rayos X</b><span>Un GM pancake no mide correctamente el haz ni determina su energía.</span></div></div>
+
+        <section id="guideCard" class="guide-card" aria-live="polite"><div class="guide-progress"><span id="guideCount">PASO 1 DE 10</span><div><i id="guideBar"></i></div></div><div class="guide-head"><span id="guideNumber">01</span><div><h2 id="guideTitle"></h2><p id="guideText"></p><p class="why"><b>POR QUÉ:</b> <span id="guideWhy"></span></p></div></div><button id="guideAction" class="primary"></button><div class="guide-nav"><button id="guidePrev">← Anterior</button><button id="guideNext">Siguiente →</button></div></section>
+
+        <div class="workspace">
+          <section class="instrument-stage" aria-label="Equipo de medición">
+            <div class="ambient"><span>ESCENARIO</span><select id="scenario"><option value="lab">Mesón de laboratorio</option><option value="nuclear">Área de medicina nuclear</option><option value="waste">Zona de residuos radiactivos</option></select></div>
+            <div class="equipment">
+              <div class="probe-wrap" id="probeTarget"><div class="probe-cable"></div><div class="probe" id="probe"><div class="probe-face"><i></i></div><div class="probe-neck"></div><div class="probe-handle"><span>α · β · γ</span></div></div><div class="distance"><span id="distanceValue">0,5 cm</span><input id="distance" type="range" min="0" max="5" step="0.5" value="0.5" aria-label="Distancia de la sonda"></div></div>
+              <div class="meter" id="meter"><div class="meter-top"><span>RAD·SCAN</span><i id="statusLed"></i></div><div class="screen"><div class="screen-icons"><span id="batteryIcon">▰▰▰</span><span id="audioIcon">AUDIO</span></div><strong id="reading">---- <small>CPM</small></strong><span id="screenMode">EQUIPO APAGADO</span><div class="scale"><i id="scaleBar"></i></div></div><div class="controls"><button id="powerBtn" class="round power" aria-label="Encender">⏻</button><button id="audioBtn" class="round" aria-label="Audio">◖))</button><button id="modeBtn" class="round wide">CPM<br><small>MODO</small></button><button id="countBtn" class="round wide">COUNT<br><small>30 s</small></button></div><div class="meter-label">MEDIDOR DIGITAL · SONDA PANCAKE</div></div>
+            </div>
+            <div class="surface-panel"><div class="scan-header"><span>SUPERFICIE DE PRÁCTICA</span><span id="scanState">Lista para inspección</span></div><div id="scanArea" class="scan-area" aria-label="Área para barrer con la sonda"><div class="grid"></div><div class="hotspot"></div><div id="probeCursor" class="probe-cursor">SONDA</div><p>Arrastra la sonda lentamente sobre toda la superficie</p></div><div class="scan-controls"><button id="startScan" class="secondary">Iniciar barrido</button><div><label for="scanSpeed">Velocidad <b id="speedValue">5 cm/s</b></label><input id="scanSpeed" type="range" min="1" max="15" value="5"></div></div></div>
+          </section>
+
+          <aside class="data-panel">
+            <div class="measurement"><div><span>Fondo</span><strong id="backgroundResult">—</strong><small>CPM</small></div><button id="backgroundBtn">Medir 60 s</button></div>
+            <div class="measurement"><div><span>Conteo bruto</span><strong id="grossResult">—</strong><small>CPM</small></div><button id="confirmBtn">Confirmar 30 s</button></div>
+            <div class="results"><h2>Interpretación</h2><div class="result-grid"><span>Tasa neta <b id="netResult">— CPM</b></span><span>Umbral de decisión <b id="thresholdResult">— CPM</b></span><span>Límite de detección <b id="detectionResult">— CPM</b></span><span>Intervalo de cobertura <b id="coverageResult">—</b></span></div><div id="verdict" class="verdict neutral"><b>Aún sin resultado</b><span>Completa el fondo, el barrido y la confirmación.</span></div></div>
+            <div class="technique"><h3>Técnica de barrido</h3><ul><li><b>Distancia:</b> 0,3–0,6 cm, sin tocar.</li><li><b>Velocidad:</b> aproximadamente un ancho de sonda por segundo.</li><li><b>Trayectoria:</b> pasadas paralelas ligeramente solapadas.</li><li><b>Respuesta:</b> escucha el audio y confirma en posición fija.</li></ul></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="conceptsView" class="concepts" hidden><p class="eyebrow slate">BASES PARA INTERPRETAR</p><h1>Lo que realmente indica el equipo</h1><div class="concept-grid">
+        <article><span>CPM / CPS</span><h2>Conteos, no dosis automática</h2><p>Representan pulsos detectados por minuto o segundo. Convertirlos a dosis exige una calibración válida para la energía y geometría.</p></article>
+        <article><span>FONDO</span><h2>Radiación presente sin la fuente</h2><p>Se mide antes del trabajo y bajo condiciones comparables. La tasa neta es la lectura bruta menos el fondo.</p></article>
+        <article><span>ISO 11929</span><h2>Decidir bajo incertidumbre</h2><p>El umbral de decisión permite establecer si el efecto es reconocido; el límite de detección evalúa si el procedimiento tiene sensibilidad suficiente.</p></article>
+        <article><span>SONDA PANCAKE</span><h2>Detecta, pero no identifica</h2><p>Puede responder a alfa, beta y gamma según energía y geometría. No identifica el radionucleido ni mide espectros.</p></article>
+        <article class="danger"><span>ALCANCE</span><h2>No utilizar para haces de rayos X</h2><p>La dependencia energética, el tiempo muerto y la saturación impiden usar este montaje para dosimetría de haces. Se requiere una cámara de ionización o instrumento específico.</p></article>
+      </div></section>
+    </main>
+    <div id="coach" class="coach" hidden><div><small id="coachStep"></small><b id="coachTitle"></b><span id="coachHint"></span></div><button id="coachShow">Mostrarme</button></div>
+    <div id="toast" class="toast" role="status"></div>
+  </div>
+  <script type="module" src="/app.js"></script>
+</body></html>
