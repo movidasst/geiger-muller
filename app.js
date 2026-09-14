@@ -2,66 +2,105 @@ const $ = (id) => document.getElementById(id);
 const SUPABASE_URL = "https://lfdmbkzghnwvsapxypvt.supabase.co";
 const KEY = "sb_publishable_bRnkA6PA8-v073nrw9zxiQ_8rVGiOn1";
 const SESSION = "movida-geiger-session", ATTEMPTS = "movida-geiger-attempts";
-const state = { mode: "guided", mission: "presence", step: 0, powered: false, audio: false, light: false, hold: false, unit: "\xB5Sv/h", range: "AUTO", inspected: false, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, distance: 100, speed: 5, scenario: "lab", surfaceDose: null, oneMeterDose: null, transportDone: false, lastReading: null, maxReading: 0, timer: null };
+const state = { mode: "guided", mission: "presence", step: 0, powered: false, audio: false, light: false, hold: false, unit: "\xB5Sv/h", range: "AUTO", inspected: false, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, distance: 100, speed: 5, scenario: "lab", surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, lastReading: null, maxReading: 0, timer: null };
 const scenarios = { lab: { background: 36, gross: 184, dose: 0.42, surfaceDose: 74, oneMeterDose: 3.4, label: "Mes\xF3n de radiois\xF3topos" }, nuclear: { background: 44, gross: 328, dose: 1.18, surfaceDose: 286, oneMeterDose: 8.7, label: "\xC1rea de medicina nuclear" }, waste: { background: 29, gross: 112, dose: 0.31, surfaceDose: 4.2, oneMeterDose: 0.34, label: "Almac\xE9n de residuos" }, gauge: { background: 34, gross: 486, dose: 2.4, surfaceDose: 740, oneMeterDose: 13.2, label: "Medidor nuclear industrial" }, scrap: { background: 31, gross: 690, dose: 4.8, surfaceDose: 1280, oneMeterDose: 22.5, label: "Patio de chatarra" } };
-const steps = [
-  { title: "Inspecciona el sistema", text: "Toca la sonda para revisar carcasa, cable, conector y la delicada ventana; la gu\xEDa avanzar\xE1 al completar la inspecci\xF3n.", why: "una ventana da\xF1ada o contaminada invalida la medici\xF3n.", target: "probeTarget", action: "Inspeccionar sonda ahora", done: () => state.inspected, run: inspectProbe },
-  { title: "Enciende el instrumento", text: "Pulsa el bot\xF3n de encendido y espera la comprobaci\xF3n inicial.", why: "el equipo debe estabilizarse antes de medir.", target: "powerBtn", action: "Encender equipo", done: () => state.powered, run: () => togglePower(true) },
-  { title: "Activa la respuesta audible", text: "Activa el audio para reconocer cambios peque\xF1os mientras barres.", why: "los pulsos ayudan a localizar un incremento sin dejar de mirar la superficie.", target: "audioBtn", action: "Activar audio", done: () => state.audio, run: () => toggleAudio(true) },
-  { title: "Mide el fondo", text: "Obt\xE9n un conteo de fondo de 60 segundos, alejado del punto sospechoso.", why: "la lectura bruta incluye radiaci\xF3n ambiental; el resultado \xFAtil es el neto.", target: "backgroundBtn", action: "Medir fondo 60 s", done: () => state.background !== null, run: measureBackground },
-  { title: "Ajusta la geometr\xEDa", text: "Coloca la ventana paralela a 0,3\u20130,6 cm de la superficie, sin tocarla.", why: "la eficiencia cambia con la distancia y el contacto puede da\xF1ar o contaminar la mica.", target: "distance", action: "Usar distancia correcta", done: () => state.distance >= 0.3 && state.distance <= 0.6, run: () => {
-    $("distance").value = 0.5;
-    setDistance(0.5);
-    advanceSoon();
-  } },
-  { title: "Prepara el barrido", text: "Usa aproximadamente un ancho de sonda por segundo: entre 3 y 6 cm/s en este ejercicio.", why: "si avanzas muy r\xE1pido, el detector permanece poco tiempo sobre una zona activa.", target: "scanSpeed", action: "Ajustar a 5 cm/s", done: () => state.speed >= 3 && state.speed <= 6, run: () => {
-    $("scanSpeed").value = 5;
-    setSpeed(5);
-    advanceSoon();
-  } },
-  { title: "Barre toda la superficie", text: "Inicia pasadas paralelas y solapadas. Escucha el cambio de pulsos.", why: "un recorrido ordenado reduce zonas omitidas y permite encontrar puntos elevados.", target: "startScan", action: "Iniciar barrido", done: () => state.scanComplete, run: startScanning },
-  { title: "Confirma el punto", text: "Det\xE9n la sonda sobre la m\xE1xima respuesta y realiza un conteo fijo de 30 segundos.", why: "el barrido localiza; la medici\xF3n estacionaria produce el dato que se interpreta.", target: "confirmBtn", action: "Confirmar 30 s", done: () => state.confirmed, run: confirmHotspot },
-  { title: "Interpreta el resultado", text: "Compara la tasa neta con el umbral de decisi\xF3n y revisa el l\xEDmite de detecci\xF3n.", why: "estar sobre el fondo no basta; la decisi\xF3n debe considerar la variabilidad del conteo.", target: "verdict", action: "Revisar interpretaci\xF3n", done: () => state.confirmed, run: () => advanceSoon() },
-  { title: "Cierra y registra", text: "Documenta fondo, tiempo, distancia, velocidad, resultado y condiciones del escenario.", why: "sin trazabilidad no puede defenderse una conclusi\xF3n de medici\xF3n.", target: "verdict", action: "Finalizar pr\xE1ctica", done: () => state.confirmed, run: () => {
-    toast("Pr\xE1ctica completada correctamente");
-    renderGuide();
-  } }
+const commonInspect = {
+  title: "Selecciona e inspecciona el detector",
+  text: "La configuración cambia según la misión. Revisa carcasa, cable, conector, ventana y vigencia de calibración antes de usarla.",
+  why: "una sonda inadecuada o dañada puede responder, pero entregar una magnitud que no sirve para decidir.",
+  observe: "la tarjeta “Detector seleccionado” debe coincidir con el objetivo de la misión.",
+  target: "probeTarget", action: "Inspeccionar detector", done: () => state.inspected, run: inspectProbe
+};
+const commonPower = {
+  title: "Enciende y comprueba el instrumento",
+  text: "Pulsa ON/OFF y espera la autocomprobación de batería, pantalla, audio y estado del detector.",
+  why: "una lectura solo es defendible si el sistema está operativo antes de entrar al área.",
+  observe: "LED verde, batería suficiente y pantalla sin mensajes de falla.",
+  target: "powerBtn", action: "Encender equipo", done: () => state.powered, run: () => togglePower(true)
+};
+const commonAudio = {
+  title: "Activa la respuesta audible",
+  text: "Activa AUDIO para reconocer cambios de la tasa mientras mantienes la vista en el recorrido.",
+  why: "la cadencia de pulsos ayuda a advertir un gradiente sin fijar la mirada en la pantalla.",
+  observe: "el indicador AUDIO queda activo; más pulsos significan mayor respuesta, no identificación del radionucleido.",
+  target: "audioBtn", action: "Activar audio", done: () => state.audio, run: () => toggleAudio(true)
+};
+const doseBackgroundStep = {
+  title: "Establece la tasa de fondo",
+  text: "Mide 60 s en una zona representativa, lejos del objeto o punto sospechoso, manteniendo la misma unidad.",
+  why: "el fondo es la referencia para reconocer un incremento y documentar la condición inicial.",
+  observe: "una lectura estable en µSv/h; no restes automáticamente el fondo para comparar una tasa de dosis calibrada.",
+  target: "backgroundBtn", action: "Medir fondo 60 s", done: () => state.background !== null, run: measureBackground
+};
+const contaminationBackgroundStep = {
+  title: "Mide el conteo de fondo",
+  text: "Con la pancake alejada de la superficie, cuenta durante 60 s y registra el resultado en CPM.",
+  why: "la contaminación se decide comparando el conteo bruto con la variabilidad del fondo.",
+  observe: "CPM de fondo y el mismo tiempo de conteo que documentarás en el registro.",
+  target: "backgroundBtn", action: "Medir fondo en CPM", done: () => state.background !== null, run: measureBackground
+};
+const presenceSteps = [
+  commonInspect, commonPower,
+  { title: "Confirma la magnitud correcta", text: "Usa la lectura principal Ḣ*(10) en µSv/h del detector compensado. CPM/CPS quedan como diagnóstico interno.", why: "la tasa de conteo no equivale universalmente a tasa de dosis.", observe: "la pantalla indica µSv/h y “TASA DE DOSIS H*(10)”.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unit === "µSv/h", run: ensureDoseUnit },
+  doseBackgroundStep, commonAudio,
+  { title: "Inicia a distancia prudente", text: "Ubica la sonda aproximadamente a 1 m antes de aproximarte. Mantén una geometría repetible.", why: "tiempo, distancia y blindaje reducen la exposición durante el reconocimiento.", observe: "el control de distancia muestra 1,0 m.", target: "distance", action: "Ubicar a 1 metro", done: () => state.distance >= 100, run: () => setDistanceAndAdvance(100) },
+  { title: "Reconoce el área sistemáticamente", text: "Recorre el área lentamente, observa la tendencia y retrocede si la tasa aumenta con rapidez.", why: "el objetivo es caracterizar el campo sin exponerte innecesariamente.", observe: "un incremento sostenido respecto al fondo y no un pulso aislado.", target: "startScan", action: "Iniciar reconocimiento", done: () => state.scanComplete, run: startScanning },
+  { title: "Confirma la tasa en un punto definido", text: "Mantén fija la geometría y confirma durante 30 s.", why: "una lectura estable y reproducible permite interpretar y registrar.", observe: "tasa confirmada, valor máximo y unidad µSv/h.", target: "confirmBtn", action: "Confirmar 30 s", done: () => state.confirmed, run: confirmHotspot },
+  { title: "Interpreta tasa, tiempo y control", text: "Revisa la tasa indicada, la proyección ilustrativa para 8 h y el nivel de investigación del ejercicio.", why: "µSv/h es rapidez de acumulación; la dosis depende del tiempo real de permanencia.", observe: "el resultado distingue detección, nivel operativo y dosis proyectada; no lo llama límite legal universal.", target: "verdict", action: "Revisar interpretación", done: () => state.confirmed, run: () => advanceSoon() },
+  { title: "Registra y comunica", text: "Documenta detector, calibración, ubicación, fondo, geometría, tasa máxima, tiempo y controles aplicados.", why: "la trazabilidad permite repetir la medición y justificar la decisión ocupacional.", observe: "un cierre completo; si hay incremento relevante, controla el área y comunica al responsable de protección radiológica.", target: "verdict", action: "Finalizar práctica", done: () => state.guideComplete, run: finishGuide }
 ];
-const doseBackgroundStep = { title: "Mide la tasa de dosis de fondo", text: "Registra durante 60 segundos la tasa de dosis ambiental en \xB5Sv/h, lejos del punto sospechoso.", why: "el fondo permite reconocer incrementos reales y documentar la condici\xF3n radiol\xF3gica inicial.", target: "backgroundBtn", action: "Medir fondo en \xB5Sv/h", done: () => state.background !== null, run: measureBackground };
+const sourceSteps = [
+  commonInspect, commonPower, commonAudio, doseBackgroundStep,
+  { title: "Comienza sin acercarte al objeto", text: "Inicia aproximadamente a 1 m y nunca recojas ni manipules el objeto sospechoso.", why: "una fuente huérfana puede producir un gradiente desconocido; primero protege a las personas.", observe: "ruta de retirada disponible y distancia marcada en 1,0 m.", target: "distance", action: "Comenzar a 1 metro", done: () => state.distance >= 100, run: () => setDistanceAndAdvance(100) },
+  { title: "Busca el gradiente, no el objeto", text: "Haz un recorrido lento y ordenado. Si la tasa crece rápidamente, retrocede y delimita.", why: "localizar no significa aproximarse hasta tocar; la seguridad manda sobre la precisión.", observe: "aumento sostenido de µSv/h y de la señal audible al cambiar de posición.", target: "startScan", action: "Iniciar búsqueda segura", done: () => state.scanComplete, run: startScanning },
+  { title: "Confirma desde una posición segura", text: "Conserva distancia y orientación, realiza una lectura fija de 30 s y no manipules la fuente.", why: "confirmar el gradiente aporta evidencia sin aumentar innecesariamente la exposición.", observe: "tasa reproducible por encima del fondo.", target: "confirmBtn", action: "Confirmar incremento", done: () => state.confirmed, run: confirmHotspot },
+  { title: "Toma la decisión ocupacional", text: "Interrumpe el acceso, aumenta la distancia y notifica al responsable radiológico; no intentes identificar el radionucleido con este equipo.", why: "un GM localiza radiación, pero no realiza espectrometría ni identifica la fuente.", observe: "el veredicto indica no tocar, aislar y comunicar.", target: "verdict", action: "Revisar respuesta", done: () => state.confirmed, run: () => advanceSoon() },
+  { title: "Registra el hallazgo", text: "Anota croquis, posiciones, distancias, tasas, hora, instrumento y personas notificadas.", why: "el registro facilita una intervención radiológica especializada.", observe: "la ubicación se describe sin mover el objeto.", target: "verdict", action: "Registrar hallazgo", done: () => state.confirmed, run: () => advanceSoon() },
+  { title: "Cierra sin manipular", text: "Mantén el área controlada y entrega la gestión a personal autorizado.", why: "el cierre seguro evita exposición secundaria o pérdida de trazabilidad.", observe: "práctica finalizada con el área aislada.", target: "verdict", action: "Finalizar búsqueda", done: () => state.guideComplete, run: finishGuide }
+];
+const contaminationSteps = [
+  commonInspect, commonPower,
+  { title: "Selecciona CPM", text: "La sonda pancake informa tasa de conteo. Usa CPM para fondo, barrido y confirmación.", why: "sin eficiencia y radionucleido conocidos, CPM no debe presentarse como µSv/h ni como actividad superficial.", observe: "la pantalla y los resultados muestran CPM.", target: "unitsBtn", action: "Confirmar CPM", done: () => state.unit === "CPM", run: ensureCountUnit },
+  contaminationBackgroundStep, commonAudio,
+  { title: "Ajusta distancia y orientación", text: "Mantén la ventana paralela a 0,3–0,6 cm, sin tocar la superficie.", why: "la distancia modifica mucho la eficiencia y el contacto puede romper o contaminar la ventana.", observe: "0,5 cm y cara sensible paralela a la superficie.", target: "distance", action: "Ajustar a 0,5 cm", done: () => state.distance >= 0.3 && state.distance <= 0.6, run: () => setDistanceAndAdvance(0.5) },
+  { title: "Ajusta la velocidad de barrido", text: "Selecciona 3–6 cm/s y utiliza pasadas paralelas ligeramente solapadas.", why: "un barrido rápido reduce el tiempo sobre una zona activa y puede omitir contaminación.", observe: "5 cm/s y cobertura completa, sin huecos.", target: "scanSpeed", action: "Ajustar a 5 cm/s", done: () => state.speed >= 3 && state.speed <= 6, run: () => { setSpeed(5); $("scanSpeed").value=5; advanceSoon(); } },
+  { title: "Barre toda la superficie", text: "Inicia el patrón ordenado y usa el audio para localizar la máxima respuesta.", why: "el barrido sirve para localizar; todavía no es la medición confirmatoria.", observe: "aumento de CPM en una zona y recorrido completo.", target: "startScan", action: "Iniciar barrido", done: () => state.scanComplete, run: startScanning },
+  { title: "Confirma en posición fija", text: "Detén la sonda sobre el máximo y cuenta 30 s conservando la geometría.", why: "el conteo fijo permite calcular tasa neta y evaluar la señal frente al fondo.", observe: "conteo bruto, tasa neta, umbral de decisión e intervalo de cobertura.", target: "confirmBtn", action: "Confirmar 30 s", done: () => state.confirmed, run: confirmHotspot },
+  { title: "Interpreta sin inventar actividad", text: "Decide si el efecto está demostrado sobre el fondo. No conviertas a Bq/cm² sin eficiencia, área y radionucleido.", why: "una tasa neta detectada no equivale por sí sola a actividad superficial.", observe: "el veredicto dice detectado/no demostrado y conserva CPM.", target: "verdict", action: "Finalizar evaluación", done: () => state.guideComplete, run: finishGuide }
+];
 const transportSteps = [
-  steps[0],
-  steps[1],
-  steps[2],
+  commonInspect, commonPower,
+  { title: "Confirma el medidor de tasa de dosis", text: "Para esta misión usa el detector calibrado que indica Ḣ*(10) en µSv/h.", why: "el índice de transporte se basa en la tasa máxima a 1 m, no en CPM.", observe: "unidad µSv/h y configuración de tasa de dosis.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unit === "µSv/h", run: ensureDoseUnit },
   doseBackgroundStep,
-  { title: "Inspecciona el bulto", text: "Sin manipularlo innecesariamente, revisa integridad, etiquetas y geometr\xEDa; identifica d\xF3nde buscar el m\xE1ximo superficial.", why: "el \xEDndice de transporte no sustituye la inspecci\xF3n del bulto ni se obtiene en un punto arbitrario.", target: "surfaceDoseBtn", action: "Medir m\xE1ximo superficial", done: () => state.surfaceDose !== null, run: measureSurfaceDose },
-  { title: "Establece exactamente 1 metro", text: "Mide desde la superficie externa del bulto, no desde su centro, y conserva la geometr\xEDa del punto m\xE1ximo.", why: "el \xEDndice de transporte se determina con la tasa m\xE1xima a 1 m de la superficie externa.", target: "oneMeterBtn", action: "Medir m\xE1ximo a 1 m", done: () => state.oneMeterDose !== null, run: measureOneMeterDose },
-  { title: "Calcula el \xEDndice de transporte", text: "Convierte la lectura a mSv/h, multipl\xEDcala por 100 y redondea hacia arriba a la primera cifra decimal.", why: "esa regla normaliza el control radiol\xF3gico y la segregaci\xF3n durante el transporte.", target: "calculateTIBtn", action: "Calcular IT", done: () => state.transportDone, run: calculateTI },
-  { title: "Verifica la categor\xEDa", text: "Compara simult\xE1neamente el m\xE1ximo superficial y el IT con la categor\xEDa de etiqueta aplicable.", why: "la categor\xEDa no depende solamente del \xEDndice de transporte.", target: "guideAction", action: "Comprend\xED la categor\xEDa", done: () => state.transportDone, run: () => advanceSoon() },
-  { title: "Diferencia IT de CSI", text: "El IT controla la exposici\xF3n externa; el \xEDndice de seguridad con respecto a la criticidad es otro dato para material fisible.", why: "ambos \xEDndices pueden figurar en un transporte, pero responden a peligros diferentes.", target: "guideAction", action: "Comprend\xED la diferencia", done: () => state.transportDone, run: () => advanceSoon() },
-  { title: "Registra la verificaci\xF3n", text: "Documenta instrumento, calibraci\xF3n, fondo, superficie, lectura a 1 m, IT, categor\xEDa, fecha y responsable.", why: "el resultado debe ser trazable y formar parte de los controles del remitente.", target: "transportPanel", action: "Finalizar verificaci\xF3n", done: () => state.transportDone, run: () => toast("Verificaci\xF3n del \xEDndice de transporte completada") }
-];
-const fieldSteps = [
-  steps[0],
-  steps[1],
-  steps[2],
-  doseBackgroundStep,
-  { title: "Comienza desde una distancia segura", text: "Inicia el reconocimiento sin aproximarte innecesariamente y observa si existe un gradiente respecto del fondo.", why: "la distancia reduce la exposici\xF3n y evita avanzar hacia un campo que a\xFAn no conoces.", target: "distance", action: "Comenzar a 1 metro", done: () => state.distance >= 30, run: () => {
-    $("distance").value = 100;
-    setDistance(100);
-    advanceSoon();
-  } },
-  { title: "Planifica un recorrido sistem\xE1tico", text: "Define una trayectoria ordenada y un ritmo constante; no persigas impulsos aislados.", why: "un patr\xF3n reproducible permite distinguir un gradiente real de la fluctuaci\xF3n estad\xEDstica.", target: "scanSpeed", action: "Ajustar recorrido", done: () => state.speed >= 3 && state.speed <= 6, run: () => {
-    $("scanSpeed").value = 5;
-    setSpeed(5);
-    advanceSoon();
-  } },
-  { title: "Busca cambios respecto del fondo", text: "Recorre el \xE1rea escuchando los pulsos y observando la tendencia. Retrocede si la respuesta aumenta r\xE1pidamente.", why: "la finalidad inicial es detectar y localizar manteniendo la exposici\xF3n tan baja como sea razonablemente posible.", target: "startScan", action: "Iniciar reconocimiento", done: () => state.scanComplete, run: startScanning },
-  { title: "Confirma desde una posici\xF3n segura", text: "Mant\xE9n una geometr\xEDa definida y realiza un conteo fijo; no toques ni recojas un objeto sospechoso.", why: "la confirmaci\xF3n debe mejorar la informaci\xF3n sin aumentar innecesariamente la dosis.", target: "confirmBtn", action: "Confirmar incremento", done: () => state.confirmed, run: confirmHotspot },
-  steps[8],
-  steps[9]
+  { title: "Localiza el máximo superficial", text: "Sin manipular innecesariamente el bulto, recorre sus caras y registra la tasa máxima en la superficie.", why: "la categoría de etiqueta también depende del máximo superficial.", observe: "máximo superficial en µSv/h y condición física del bulto.", target: "surfaceDoseBtn", action: "Medir máximo superficial", done: () => state.surfaceDose !== null, run: measureSurfaceDose },
+  { title: "Mide exactamente a 1 metro", text: "Desde el punto de la superficie externa donde obtuviste el máximo, establece 1 m y mide la tasa máxima.", why: "el IT se calcula con la tasa a 1 m de la superficie externa, no del centro.", observe: "lectura a 1 m expresada en µSv/h.", target: "oneMeterBtn", action: "Medir a 1 metro", done: () => state.oneMeterDose !== null, run: measureOneMeterDose },
+  { title: "Calcula el índice de transporte", text: "Convierte µSv/h a mSv/h, multiplica por 100 y aplica el redondeo correspondiente.", why: "esa operación produce el número adimensional usado para control del transporte.", observe: "por ejemplo, 8,7 µSv/h = 0,0087 mSv/h; ×100 = 0,87, IT mostrado 0,9.", target: "calculateTIBtn", action: "Calcular IT", done: () => state.transportDone, run: calculateTI },
+  { title: "Verifica ambos criterios", text: "Revisa simultáneamente IT y máximo superficial para determinar la categoría simulada.", why: "la etiqueta no se decide únicamente con el IT.", observe: "I‑BLANCA, II‑AMARILLA, III‑AMARILLA o fuera del alcance ordinario.", target: "tiResult", action: "Revisar categoría", done: () => state.transportDone, run: () => advanceSoon() },
+  { title: "No confundas IT con CSI", text: "El IT se relaciona con exposición externa; el índice de seguridad con respecto a la criticidad aplica a material fisible.", why: "son controles diferentes aunque ambos puedan aparecer en documentación de transporte.", observe: "el resultado permanece identificado como índice de transporte.", target: "tiResult", action: "Comprendí la diferencia", done: () => state.transportDone, run: () => advanceSoon() },
+  { title: "Registra la verificación", text: "Documenta instrumento, calibración, fondo, máximos, distancia, IT, categoría, fecha y responsable.", why: "la trazabilidad forma parte del control del bulto y de la comunicación del riesgo.", observe: "verificación finalizada con todos los datos esenciales.", target: "transportPanel", action: "Finalizar verificación", done: () => state.guideComplete, run: finishGuide }
 ];
 function activeSteps() {
-  return state.mission === "transport" ? transportSteps : state.mission === "presence" || state.mission === "source" ? fieldSteps : steps;
+  return ({ presence: presenceSteps, source: sourceSteps, contamination: contaminationSteps, transport: transportSteps })[state.mission];
+}
+function ensureDoseUnit() {
+  if (!state.powered) { toast("Primero enciende el instrumento."); pointTo("powerBtn"); return; }
+  state.unit = "µSv/h"; state.hold = false; updateDisplay(state.background); renderGuide();
+  toast("Magnitud confirmada: tasa de equivalente de dosis ambiental Ḣ*(10)");
+  advanceSoon();
+}
+function ensureCountUnit() {
+  if (!state.powered) { toast("Primero enciende el instrumento."); pointTo("powerBtn"); return; }
+  state.unit = "CPM"; state.hold = false; updateDisplay(state.background); renderGuide();
+  toast("Magnitud confirmada: tasa de conteo en CPM");
+  advanceSoon();
+}
+function setDistanceAndAdvance(value) {
+  $("distance").value = value; setDistance(value); advanceSoon();
+}
+function finishGuide() {
+  state.guideComplete = true;
+  renderGuide();
+  toast("Misión completada · revisa el resumen y registra el resultado");
 }
 function setLogin(text) {
   $("loginMessage").textContent = text;
@@ -455,11 +494,13 @@ function renderGuide() {
   $("guideTitle").textContent = s.title;
   $("guideText").textContent = s.text;
   $("guideWhy").textContent = s.why;
+  $("guideObserve").textContent = s.observe;
   $("guideAction").textContent = s.action;
   $("guideBar").style.width = `${(state.step + 1) / flow.length * 100}%`;
   $("guidePrev").disabled = state.step === 0;
-  $("guideNext").textContent = "Siguiente \u2192";
+  $("guideNext").textContent = state.guideComplete ? "Misión completada ✓" : "Siguiente →";
   $("guideNext").disabled = !s.done() || state.step === flow.length - 1;
+  $("guideCard").classList.toggle("complete", state.guideComplete);
   $("coachStep").textContent = `SIGUIENTE \xB7 PASO ${state.step + 1} DE ${flow.length}`;
   $("coachTitle").textContent = s.title;
   $("coachHint").textContent = `Te llevar\xE9 al control exacto: ${s.action.toLowerCase()}`;
@@ -516,10 +557,22 @@ function setMode(mode) {
 function setMission(mission) {
   clearTimeout(state.advanceTimer);
   clearInterval(state.timer);
-  Object.assign(state, { mission, step: 0, advancing: false, inspected: false, powered: false, audio: false, unit: mission === "contamination" ? "CPM" : "\xB5Sv/h", lastReading: null, maxReading: 0 });
+  Object.assign(state, { mission, step: 0, advancing: false, inspected: false, powered: false, audio: false, guideComplete: false, unit: mission === "contamination" ? "CPM" : "\xB5Sv/h", lastReading: null, maxReading: 0 });
   document.querySelectorAll(".mission").forEach((b) => b.classList.toggle("active", b.dataset.mission === mission));
   $("transportPanel").hidden = mission !== "transport";
   const contamination = mission === "contamination";
+  const configs = {
+    presence: ["Detector GM compensado para gamma", "Ḣ*(10) · µSv/h", "Reconocimiento del campo y tasa de equivalente de dosis ambiental. No sustituye el dosímetro personal."],
+    source: ["Detector GM compensado para gamma", "Ḣ*(10) · µSv/h", "Búsqueda por gradiente desde una distancia segura. No identifica radionucleidos."],
+    contamination: ["Sonda GM pancake de ventana delgada", "Tasa de conteo · CPM/CPS", "Barrido y confirmación de contaminación. CPM no se convierte universalmente en dosis ni Bq/cm²."],
+    transport: ["Detector de tasa de dosis calibrado", "Ḣ*(10) · µSv/h", "Máximo superficial y máximo a 1 m para verificar el índice de transporte."]
+  };
+  [$("activeProbe").textContent, $("activeQuantity").textContent, $("activeUse").textContent] = configs[mission];
+  $("meterLabel").textContent = contamination ? "MONITOR DE CONTAMINACIÓN · SONDA PANCAKE" : "MEDIDOR DE TASA DE DOSIS · RESPUESTA CALIBRADA";
+  $("techniqueTitle").textContent = contamination ? "Técnica de barrido superficial" : "Técnica de reconocimiento radiológico";
+  $("techniqueList").innerHTML = contamination
+    ? "<li><b>Distancia:</b> 0,3–0,6 cm, sin tocar.</li><li><b>Velocidad:</b> 3–6 cm/s en este ejercicio.</li><li><b>Trayectoria:</b> pasadas paralelas ligeramente solapadas.</li><li><b>Resultado:</b> CPM bruto y neto; Bq/cm² exige calibración adicional.</li>"
+    : "<li><b>Inicio:</b> desde una distancia prudente y con ruta de retirada.</li><li><b>Lectura:</b> Ḣ*(10) en µSv/h con detector apropiado.</li><li><b>Tendencia:</b> observa el gradiente y retrocede ante aumentos rápidos.</li><li><b>Control:</b> tiempo, distancia, blindaje y comunicación.</li>";
   $("doseRow").hidden = contamination || mission === "transport";
   $("criterionRow").hidden = contamination || mission === "transport";
   $("projectionRow").hidden = contamination || mission === "transport";
@@ -550,7 +603,7 @@ function setMission(mission) {
 }
 function resetScenario(value) {
   clearInterval(state.timer);
-  Object.assign(state, { scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, lastReading: null, maxReading: 0 });
+  Object.assign(state, { scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, lastReading: null, maxReading: 0 });
   $("backgroundResult").textContent = "\u2014";
   $("grossResult").textContent = "\u2014";
   $("netResult").textContent = state.mission === "contamination" ? "\u2014 CPM" : "\u2014 \xB5Sv/h";
