@@ -114,3 +114,18 @@ test("no quedan referencias de ejecución a paneles eliminados", () => {
   assert.doesNotMatch(app, /querySelector\("\.surface-panel"\)/);
   assert.doesNotMatch(app, /querySelector\("\.scan-controls label"\)/);
 });
+
+
+test("el audio se desbloquea desde el botón y emite pulsos de prueba", () => {
+  assert.match(app, /window\.AudioContext \|\| window\.webkitAudioContext/);
+  assert.match(app, /audioContext\.resume\(\)/);
+  assert.match(app, /detectorClick\(1\)/);
+  assert.match(app, /dos pulsos de prueba/);
+});
+
+test("el barrido reproduce clics con cadencia dependiente de la lectura", () => {
+  assert.match(app, /function emitDetectorClick\(reading\)/);
+  assert.match(app, /const ratio = Math\.max\(0\.5, reading \/ baseline\)/);
+  assert.match(app, /emitDetectorClick\(count\)/);
+  assert.doesNotMatch(app, /function clickSound\(\)/);
+});
