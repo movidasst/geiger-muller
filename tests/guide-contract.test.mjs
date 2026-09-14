@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const app = readFileSync("app.js", "utf8");
 const html = readFileSync("index.html", "utf8");
+const css = readFileSync("styles.css", "utf8");
 const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
 const flowNames = ["presenceSteps", "sourceSteps", "contaminationSteps", "transportSteps"];
 
@@ -128,4 +129,18 @@ test("el barrido reproduce clics con cadencia dependiente de la lectura", () => 
   assert.match(app, /const ratio = Math\.max\(0\.5, reading \/ baseline\)/);
   assert.match(app, /emitDetectorClick\(count\)/);
   assert.doesNotMatch(app, /function clickSound\(\)/);
+});
+
+
+test("el acceso y el simulador son vistas excluyentes", () => {
+  assert.match(css, /\[hidden\]\{display:none!important\}/);
+  assert.match(app, /\$\("loginGate"\)\.hidden = true/);
+  assert.match(app, /\$\("appShell"\)\.hidden = false/);
+  assert.match(app, /classList\.add\("simulator-open"\)/);
+});
+
+test("al ingresar la vista comienza arriba en PC, tablet y móvil", () => {
+  assert.match(app, /window\.scrollTo\(0, 0\)/);
+  assert.match(app, /document\.documentElement\.scrollTop = 0/);
+  assert.match(css, /#appShell\{min-height:100svh\}/);
 });
