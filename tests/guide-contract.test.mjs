@@ -56,3 +56,10 @@ test("cambiar escenario reinicia la guía de forma segura", () => {
   assert.match(app, /state\.unitConfirmed = false;/);
   assert.match(app, /La guía volvió al paso 1/);
 });
+
+test("distancia y velocidad avanzan al alcanzar el rango guiado", () => {
+  assert.match(app, /target === "distance" && activeSteps\(\)\[state\.step\]\.done\(\)\) advanceSoon\(\)/);
+  assert.match(app, /target === "scanSpeed" && activeSteps\(\)\[state\.step\]\.done\(\)\) advanceSoon\(\)/);
+  assert.match(app, /distance: mission === "contamination" \? 1\.5 : 50/);
+  assert.match(app, /speed: 10/);
+});

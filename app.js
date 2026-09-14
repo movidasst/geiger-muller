@@ -561,7 +561,7 @@ function setMode(mode) {
 function setMission(mission) {
   clearTimeout(state.advanceTimer);
   clearInterval(state.timer);
-  Object.assign(state, { mission, step: 0, advancing: false, inspected: false, powered: false, audio: false, guideComplete: false, unitConfirmed: false, unit: mission === "contamination" ? "CPM" : "\xB5Sv/h", lastReading: null, maxReading: 0 });
+  Object.assign(state, { mission, step: 0, advancing: false, inspected: false, powered: false, audio: false, guideComplete: false, unitConfirmed: false, unit: mission === "contamination" ? "CPM" : "\xB5Sv/h", distance: mission === "contamination" ? 1.5 : 50, speed: 10, lastReading: null, maxReading: 0 });
   document.querySelectorAll(".mission").forEach((b) => b.classList.toggle("active", b.dataset.mission === mission));
   $("transportPanel").hidden = mission !== "transport";
   const contamination = mission === "contamination";
@@ -598,12 +598,14 @@ function setMission(mission) {
   const scanLabel = document.querySelector(".scan-controls label");
   scanLabel.innerHTML = contamination ? 'Velocidad <b id="speedValue">5 cm/s</b>' : 'Ritmo de recorrido <b id="speedValue">lento</b>';
   if (contamination) {
-    setDistance(0.5);
-    $("distance").value = 0.5;
+    $("distance").value = 1.5;
+    setDistance(1.5);
   } else if (mission !== "transport") {
-    setDistance(100);
-    $("distance").value = 100;
+    $("distance").value = 50;
+    setDistance(50);
   }
+  $("scanSpeed").value = 10;
+  setSpeed(10);
   resetScenario(state.scenario);
   renderGuide();
   toast({ contamination: "Misi\xF3n t\xE9cnica: contaminaci\xF3n en CPM", presence: "Misi\xF3n principal: tasa de dosis en \xB5Sv/h", source: "Misi\xF3n: b\xFAsqueda de fuente en \xB5Sv/h", transport: "Misi\xF3n: \xEDndice de transporte" }[mission]);
@@ -694,8 +696,14 @@ $("probeTarget").addEventListener("keydown", (e) => {
 $("powerBtn").addEventListener("click", () => togglePower());
 $("audioBtn").addEventListener("click", () => toggleAudio());
 $("backgroundBtn").addEventListener("click", measureBackground);
-$("distance").addEventListener("input", (e) => setDistance(e.target.value));
-$("scanSpeed").addEventListener("input", (e) => setSpeed(e.target.value));
+$("distance").addEventListener("input", (e) => {
+  setDistance(e.target.value);
+  if (state.mode === "guided" && activeSteps()[state.step]?.target === "distance" && activeSteps()[state.step].done()) advanceSoon();
+});
+$("scanSpeed").addEventListener("input", (e) => {
+  setSpeed(e.target.value);
+  if (state.mode === "guided" && activeSteps()[state.step]?.target === "scanSpeed" && activeSteps()[state.step].done()) advanceSoon();
+});
 $("startScan").addEventListener("click", startScanning);
 $("confirmBtn").addEventListener("click", confirmHotspot);
 $("surfaceDoseBtn").addEventListener("click", measureSurfaceDose);
