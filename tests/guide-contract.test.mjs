@@ -18,7 +18,7 @@ function flowSource(name) {
 test("las cuatro misiones tienen diez pasos y controles existentes", () => {
   for (const name of flowNames) {
     const source = flowSource(name);
-    const entries = [...source.matchAll(/(?:commonInspect|commonPower|commonAudio|doseBackgroundStep|contaminationBackgroundStep)|\{ title:/g)];
+    const entries = [...source.matchAll(/(?:commonInspect|commonPower|commonAudio|doseBackgroundStep|contaminationBackgroundStep|fieldSpeedStep)|\{ title:/g)];
     assert.equal(entries.length, 10, `${name} no tiene 10 pasos`);
     for (const [, target] of source.matchAll(/target: "([^"]+)"/g)) {
       assert.ok(ids.has(target), `${name} apunta al control inexistente #${target}`);
