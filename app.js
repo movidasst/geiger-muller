@@ -326,16 +326,21 @@ function simulateCount(button, duration, onDone, label) {
   if (button.disabled) return;
   button.disabled = true;
   let left = duration;
-  const original = button.textContent;
-  button.textContent = `${label} ${left} s`;
+  const progressLabel = button.id === "countBtn" ? $("countLabel") : null;
+  const original = progressLabel ? progressLabel.textContent : button.textContent;
+  const setProgress = (value) => {
+    if (progressLabel) progressLabel.textContent = value;
+    else button.textContent = value;
+  };
+  setProgress(`${label} ${left} s`);
   clearInterval(state.timer);
   state.timer = setInterval(() => {
     left -= 5;
-    button.textContent = `${label} ${Math.max(0, left)} s`;
+    setProgress(`${label} ${Math.max(0, left)} s`);
     if (left <= 0) {
       clearInterval(state.timer);
       button.disabled = false;
-      button.textContent = original;
+      setProgress(original);
       onDone();
     }
   }, 180);
@@ -621,7 +626,6 @@ function setMission(mission) {
   $("criterionRow").hidden = contamination || mission === "transport";
   $("projectionRow").hidden = contamination || mission === "transport";
   $("doseNote").hidden = mission === "transport";
-  document.querySelector(".surface-panel").hidden = mission === "transport";
   $("backgroundLabel").textContent = contamination ? "Conteo de fondo" : "Tasa de dosis de fondo";
   $("grossLabel").textContent = contamination ? "Conteo bruto confirmado" : "Tasa de dosis confirmada";
   $("backgroundUnit").textContent = contamination ? "CPM" : "\xB5Sv/h";
@@ -632,8 +636,6 @@ function setMission(mission) {
   $("coverageRow").hidden = !contamination;
   $("distance").max = contamination ? 5 : 200;
   $("distance").step = contamination ? 0.5 : 10;
-  const scanLabel = document.querySelector(".scan-controls label");
-  scanLabel.innerHTML = contamination ? 'Velocidad <b id="speedValue">5 cm/s</b>' : 'Ritmo de recorrido <b id="speedValue">lento</b>';
   if (contamination) {
     $("distance").value = 1.5;
     setDistance(1.5);
