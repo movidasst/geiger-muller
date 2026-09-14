@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const SUPABASE_URL = "https://lfdmbkzghnwvsapxypvt.supabase.co";
 const KEY = "sb_publishable_bRnkA6PA8-v073nrw9zxiQ_8rVGiOn1";
 const SESSION = "movida-geiger-session", ATTEMPTS = "movida-geiger-attempts";
-const state = { mode: "guided", mission: "presence", step: 0, powered: false, audio: false, light: false, hold: false, unit: "\xB5Sv/h", range: "AUTO", inspected: false, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, distance: 100, speed: 5, scenario: "lab", surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, lastReading: null, maxReading: 0, timer: null };
+const state = { mode: "guided", mission: "presence", step: 0, powered: false, audio: false, light: false, hold: false, unit: "\xB5Sv/h", range: "AUTO", inspected: false, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, distance: 100, speed: 5, scenario: "lab", surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0, timer: null };
 const scenarios = { lab: { background: 36, gross: 184, dose: 0.42, surfaceDose: 74, oneMeterDose: 3.4, label: "Mes\xF3n de radiois\xF3topos" }, nuclear: { background: 44, gross: 328, dose: 1.18, surfaceDose: 286, oneMeterDose: 8.7, label: "\xC1rea de medicina nuclear" }, waste: { background: 29, gross: 112, dose: 0.31, surfaceDose: 4.2, oneMeterDose: 0.34, label: "Almac\xE9n de residuos" }, gauge: { background: 34, gross: 486, dose: 2.4, surfaceDose: 740, oneMeterDose: 13.2, label: "Medidor nuclear industrial" }, scrap: { background: 31, gross: 690, dose: 4.8, surfaceDose: 1280, oneMeterDose: 22.5, label: "Patio de chatarra" } };
 const commonInspect = {
   title: "Selecciona e inspecciona el detector",
@@ -41,7 +41,7 @@ const contaminationBackgroundStep = {
 };
 const presenceSteps = [
   commonInspect, commonPower,
-  { title: "Confirma la magnitud correcta", text: "Usa la lectura principal Ḣ*(10) en µSv/h del detector compensado. CPM/CPS quedan como diagnóstico interno.", why: "la tasa de conteo no equivale universalmente a tasa de dosis.", observe: "la pantalla indica µSv/h y “TASA DE DOSIS H*(10)”.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unit === "µSv/h", run: ensureDoseUnit },
+  { title: "Confirma la magnitud correcta", text: "Usa la lectura principal Ḣ*(10) en µSv/h del detector compensado. CPM/CPS quedan como diagnóstico interno.", why: "la tasa de conteo no equivale universalmente a tasa de dosis.", observe: "la pantalla indica µSv/h y “TASA DE DOSIS H*(10)”.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unitConfirmed && state.unit === "µSv/h", run: ensureDoseUnit },
   doseBackgroundStep, commonAudio,
   { title: "Inicia a distancia prudente", text: "Ubica la sonda aproximadamente a 1 m antes de aproximarte. Mantén una geometría repetible.", why: "tiempo, distancia y blindaje reducen la exposición durante el reconocimiento.", observe: "el control de distancia muestra 1,0 m.", target: "distance", action: "Ubicar a 1 metro", done: () => state.distance >= 100, run: () => setDistanceAndAdvance(100) },
   { title: "Reconoce el área sistemáticamente", text: "Recorre el área lentamente, observa la tendencia y retrocede si la tasa aumenta con rapidez.", why: "el objetivo es caracterizar el campo sin exponerte innecesariamente.", observe: "un incremento sostenido respecto al fondo y no un pulso aislado.", target: "startScan", action: "Iniciar reconocimiento", done: () => state.scanComplete, run: startScanning },
@@ -60,7 +60,7 @@ const sourceSteps = [
 ];
 const contaminationSteps = [
   commonInspect, commonPower,
-  { title: "Selecciona CPM", text: "La sonda pancake informa tasa de conteo. Usa CPM para fondo, barrido y confirmación.", why: "sin eficiencia y radionucleido conocidos, CPM no debe presentarse como µSv/h ni como actividad superficial.", observe: "la pantalla y los resultados muestran CPM.", target: "unitsBtn", action: "Confirmar CPM", done: () => state.unit === "CPM", run: ensureCountUnit },
+  { title: "Selecciona CPM", text: "La sonda pancake informa tasa de conteo. Usa CPM para fondo, barrido y confirmación.", why: "sin eficiencia y radionucleido conocidos, CPM no debe presentarse como µSv/h ni como actividad superficial.", observe: "la pantalla y los resultados muestran CPM.", target: "unitsBtn", action: "Confirmar CPM", done: () => state.unitConfirmed && state.unit === "CPM", run: ensureCountUnit },
   contaminationBackgroundStep, commonAudio,
   { title: "Ajusta distancia y orientación", text: "Mantén la ventana paralela a 0,3–0,6 cm, sin tocar la superficie.", why: "la distancia modifica mucho la eficiencia y el contacto puede romper o contaminar la ventana.", observe: "0,5 cm y cara sensible paralela a la superficie.", target: "distance", action: "Ajustar a 0,5 cm", done: () => state.distance >= 0.3 && state.distance <= 0.6, run: () => setDistanceAndAdvance(0.5) },
   { title: "Ajusta la velocidad de barrido", text: "Selecciona 3–6 cm/s y utiliza pasadas paralelas ligeramente solapadas.", why: "un barrido rápido reduce el tiempo sobre una zona activa y puede omitir contaminación.", observe: "5 cm/s y cobertura completa, sin huecos.", target: "scanSpeed", action: "Ajustar a 5 cm/s", done: () => state.speed >= 3 && state.speed <= 6, run: () => { setSpeed(5); $("scanSpeed").value=5; advanceSoon(); } },
@@ -70,7 +70,7 @@ const contaminationSteps = [
 ];
 const transportSteps = [
   commonInspect, commonPower,
-  { title: "Confirma el medidor de tasa de dosis", text: "Para esta misión usa el detector calibrado que indica Ḣ*(10) en µSv/h.", why: "el índice de transporte se basa en la tasa máxima a 1 m, no en CPM.", observe: "unidad µSv/h y configuración de tasa de dosis.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unit === "µSv/h", run: ensureDoseUnit },
+  { title: "Confirma el medidor de tasa de dosis", text: "Para esta misión usa el detector calibrado que indica Ḣ*(10) en µSv/h.", why: "el índice de transporte se basa en la tasa máxima a 1 m, no en CPM.", observe: "unidad µSv/h y configuración de tasa de dosis.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unitConfirmed && state.unit === "µSv/h", run: ensureDoseUnit },
   doseBackgroundStep,
   { title: "Localiza el máximo superficial", text: "Sin manipular innecesariamente el bulto, recorre sus caras y registra la tasa máxima en la superficie.", why: "la categoría de etiqueta también depende del máximo superficial.", observe: "máximo superficial en µSv/h y condición física del bulto.", target: "surfaceDoseBtn", action: "Medir máximo superficial", done: () => state.surfaceDose !== null, run: measureSurfaceDose },
   { title: "Mide exactamente a 1 metro", text: "Desde el punto de la superficie externa donde obtuviste el máximo, establece 1 m y mide la tasa máxima.", why: "el IT se calcula con la tasa a 1 m de la superficie externa, no del centro.", observe: "lectura a 1 m expresada en µSv/h.", target: "oneMeterBtn", action: "Medir a 1 metro", done: () => state.oneMeterDose !== null, run: measureOneMeterDose },
@@ -84,13 +84,13 @@ function activeSteps() {
 }
 function ensureDoseUnit() {
   if (!state.powered) { toast("Primero enciende el instrumento."); pointTo("powerBtn"); return; }
-  state.unit = "µSv/h"; state.hold = false; updateDisplay(state.background); renderGuide();
+  state.unit = "µSv/h"; state.unitConfirmed = true; state.hold = false; updateDisplay(state.background); renderGuide();
   toast("Magnitud confirmada: tasa de equivalente de dosis ambiental Ḣ*(10)");
   advanceSoon();
 }
 function ensureCountUnit() {
   if (!state.powered) { toast("Primero enciende el instrumento."); pointTo("powerBtn"); return; }
-  state.unit = "CPM"; state.hold = false; updateDisplay(state.background); renderGuide();
+  state.unit = "CPM"; state.unitConfirmed = true; state.hold = false; updateDisplay(state.background); renderGuide();
   toast("Magnitud confirmada: tasa de conteo en CPM");
   advanceSoon();
 }
@@ -218,6 +218,12 @@ function updateDisplay(value) {
 function cycleUnits() {
   if (!state.powered) {
     toast("Primero enciende el instrumento.");
+    return;
+  }
+  const currentGuideStep = state.mode === "guided" ? activeSteps()[state.step] : null;
+  if (currentGuideStep?.target === "unitsBtn" && !currentGuideStep.done()) {
+    if (state.mission === "contamination") ensureCountUnit();
+    else ensureDoseUnit();
     return;
   }
   const allowed = state.mission === "contamination" ? ["CPM", "CPS"] : ["\xB5Sv/h", "CPM", "CPS"];
@@ -556,7 +562,7 @@ function setMode(mode) {
 function setMission(mission) {
   clearTimeout(state.advanceTimer);
   clearInterval(state.timer);
-  Object.assign(state, { mission, step: 0, advancing: false, inspected: false, powered: false, audio: false, guideComplete: false, unit: mission === "contamination" ? "CPM" : "\xB5Sv/h", lastReading: null, maxReading: 0 });
+  Object.assign(state, { mission, step: 0, advancing: false, inspected: false, powered: false, audio: false, guideComplete: false, unitConfirmed: false, unit: mission === "contamination" ? "CPM" : "\xB5Sv/h", lastReading: null, maxReading: 0 });
   document.querySelectorAll(".mission").forEach((b) => b.classList.toggle("active", b.dataset.mission === mission));
   $("transportPanel").hidden = mission !== "transport";
   const contamination = mission === "contamination";
@@ -605,7 +611,7 @@ function setMission(mission) {
 }
 function resetScenario(value) {
   clearInterval(state.timer);
-  Object.assign(state, { scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, lastReading: null, maxReading: 0 });
+  Object.assign(state, { scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0 });
   $("backgroundResult").textContent = "\u2014";
   $("grossResult").textContent = "\u2014";
   $("netResult").textContent = state.mission === "contamination" ? "\u2014 CPM" : "\u2014 \xB5Sv/h";
