@@ -3,7 +3,41 @@ const SUPABASE_URL = "https://lfdmbkzghnwvsapxypvt.supabase.co";
 const KEY = "sb_publishable_bRnkA6PA8-v073nrw9zxiQ_8rVGiOn1";
 const SESSION = "movida-geiger-session", ATTEMPTS = "movida-geiger-attempts";
 const state = { mode: "guided", mission: "presence", step: 0, powered: false, audio: false, light: false, hold: false, unit: "\xB5Sv/h", range: "AUTO", inspected: false, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, distance: 100, speed: 5, scenario: "lab", surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0, timer: null };
-const scenarios = { lab: { background: 36, gross: 184, dose: 0.42, surfaceDose: 74, oneMeterDose: 3.4, label: "Mes\xF3n de radiois\xF3topos" }, nuclear: { background: 44, gross: 328, dose: 1.18, surfaceDose: 286, oneMeterDose: 8.7, label: "\xC1rea de medicina nuclear" }, waste: { background: 29, gross: 112, dose: 0.31, surfaceDose: 4.2, oneMeterDose: 0.34, label: "Almac\xE9n de residuos" }, gauge: { background: 34, gross: 486, dose: 2.4, surfaceDose: 740, oneMeterDose: 13.2, label: "Medidor nuclear industrial" }, scrap: { background: 31, gross: 690, dose: 4.8, surfaceDose: 1280, oneMeterDose: 22.5, label: "Patio de chatarra" } };
+const scenarios = {
+  lab: { background: 36, gross: 184, dose: 0.42, surfaceDose: 74, oneMeterDose: 3.4, label: "Mesón de radioisótopos" },
+  nuclear: { background: 44, gross: 328, dose: 1.18, surfaceDose: 286, oneMeterDose: 8.7, label: "Área de medicina nuclear" },
+  waste: { background: 29, gross: 112, dose: 0.31, surfaceDose: 4.2, oneMeterDose: 0.34, label: "Almacén de residuos radiactivos" },
+  gauge: { background: 34, gross: 486, dose: 2.4, surfaceDose: 740, oneMeterDose: 13.2, label: "Medidor nuclear industrial" },
+  scrap: { background: 31, gross: 690, dose: 4.8, surfaceDose: 1280, oneMeterDose: 22.5, label: "Fuente sospechosa en chatarra" },
+  orphanStore: { background: 33, gross: 820, dose: 6.2, surfaceDose: 1450, oneMeterDose: 31, label: "Objeto sin identificación en almacén" },
+  packageWhite: { background: 34, gross: 92, dose: 0.22, surfaceDose: 3.0, oneMeterDose: 0.3, label: "Bulto categoría I-BLANCA" },
+  packageYellowII: { background: 36, gross: 260, dose: 0.86, surfaceDose: 120, oneMeterDose: 8.7, label: "Bulto categoría II-AMARILLA" },
+  packageYellowIII: { background: 38, gross: 510, dose: 2.1, surfaceDose: 950, oneMeterDose: 42, label: "Bulto categoría III-AMARILLA" }
+};
+const missionScenarios = {
+  presence: ["gauge", "nuclear", "waste"],
+  source: ["scrap", "orphanStore"],
+  contamination: ["lab", "nuclear", "waste"],
+  transport: ["packageYellowII", "packageWhite", "packageYellowIII"]
+};
+const missionScenarioLabels = {
+  presence: "ESCENARIO DE VIGILANCIA",
+  source: "ESCENARIO DE BÚSQUEDA",
+  contamination: "SUPERFICIE A EVALUAR",
+  transport: "BULTO PARA TRANSPORTE"
+};
+function configureMissionScenarios(mission) {
+  const allowed = missionScenarios[mission];
+  $("scenario").replaceChildren(...allowed.map((key) => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = scenarios[key].label;
+    return option;
+  }));
+  state.scenario = allowed[0];
+  $("scenario").value = state.scenario;
+  $("scenarioLabel").textContent = missionScenarioLabels[mission];
+}
 const commonInspect = {
   title: "Selecciona e inspecciona el detector",
   text: "La configuración cambia según la misión. Revisa carcasa, cable, conector, ventana y vigencia de calibración antes de usarla.",
@@ -606,6 +640,7 @@ function setMission(mission) {
   }
   $("scanSpeed").value = 10;
   setSpeed(10);
+  configureMissionScenarios(mission);
   resetScenario(state.scenario);
   renderGuide();
   toast({ contamination: "Misi\xF3n t\xE9cnica: contaminaci\xF3n en CPM", presence: "Misi\xF3n principal: tasa de dosis en \xB5Sv/h", source: "Misi\xF3n: b\xFAsqueda de fuente en \xB5Sv/h", transport: "Misi\xF3n: \xEDndice de transporte" }[mission]);

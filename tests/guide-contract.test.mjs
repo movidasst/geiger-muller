@@ -69,3 +69,12 @@ test("el avance mantiene el foco en el equipo", () => {
   const focusCalls = app.match(/pointTo\(activeSteps\(\)\[state\.step\]\.target\)/g) || [];
   assert.ok(focusCalls.length >= 3, "el paso siguiente no señala su control real");
 });
+
+test("cada misión carga únicamente escenarios compatibles", () => {
+  assert.match(app, /presence: \["gauge", "nuclear", "waste"\]/);
+  assert.match(app, /source: \["scrap", "orphanStore"\]/);
+  assert.match(app, /contamination: \["lab", "nuclear", "waste"\]/);
+  assert.match(app, /transport: \["packageYellowII", "packageWhite", "packageYellowIII"\]/);
+  assert.match(app, /configureMissionScenarios\(mission\);\s+resetScenario\(state\.scenario\)/);
+  assert.match(app, /state\.scenario = allowed\[0\]/);
+});
