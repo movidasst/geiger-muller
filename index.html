@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#00205b"><meta name="description" content="Simulador didáctico de contador Geiger-Müller de La Movida de SST Plus">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://raw.githubusercontent.com; connect-src 'self' https://lfdmbkzghnwvsapxypvt.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
   <title>Simulador Geiger-Müller | La Movida SST Plus</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,6 +22,7 @@
         <label for="memberPassword">Clave o código de integrante</label><div class="password-wrap"><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Escribe tu clave" required><button id="togglePassword" type="button">Mostrar</button></div>
         <button id="loginSubmit" class="primary" type="submit"><span>Abrir simulador</span></button><p id="loginMessage" class="form-message" role="alert"></p>
       </form><div class="register"><b>¿Aún no eres integrante?</b><span>El registro es gratuito.</span><a href="https://registro.movidasst.com">Registrarme ahora</a></div><small>La validación usa el registro oficial. No guardamos tus credenciales.</small>
+      <p class="legal-links"><a href="https://github.com/movidasst/geiger-muller">Código fuente y licencia</a><span>·</span><a href="https://github.com/movidasst/geiger-muller/security/policy">Reportar una vulnerabilidad</a></p>
     </section>
   </main>
 
@@ -66,6 +69,7 @@
         <article class="danger"><span>ALCANCE</span><h2>No utilizar para haces de rayos X</h2><p>La dependencia energética, el tiempo muerto y la saturación impiden usar este montaje para dosimetría de haces. Se requiere una cámara de ionización o instrumento específico.</p></article>
       </div></section>
     </main>
+    <footer class="site-footer"><p>© 2026 David Linares Brea · La Movida de SST Plus</p><nav aria-label="Información legal"><a href="https://github.com/movidasst/geiger-muller">Código fuente y licencia AGPL‑3.0</a><a href="https://github.com/movidasst/geiger-muller/blob/main/TRADEMARKS.md">Uso de marca</a><a href="mailto:info@movidasst.com">Contacto y seguridad</a></nav></footer>
     <div id="coach" class="coach" hidden><div><small id="coachStep"></small><b id="coachTitle"></b><span id="coachHint"></span></div><button id="coachShow">Mostrarme</button></div>
     <div id="toast" class="toast" role="status"></div>
   </div>
