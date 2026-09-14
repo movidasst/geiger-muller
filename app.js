@@ -113,8 +113,7 @@ function openApp(member, persist = true) {
   $("loginGate").hidden = true;
   $("appShell").hidden = false;
   document.body.classList.remove("auth-locked");
-  renderGuide();
-  updateDisplay();
+  setMission(state.mission);
   setTimeout(() => logout(true), Math.max(0, expiresAt - Date.now()));
 }
 function logout(expired = false) {
@@ -631,6 +630,33 @@ function resetScenario(value) {
   $("verdict").innerHTML = "<b>A\xFAn sin resultado</b><span>Completa el fondo, el recorrido y la confirmaci\xF3n.</span>";
   updateDisplay();
 }
+function validateGuideContracts() {
+  const flows = { presence: presenceSteps, source: sourceSteps, contamination: contaminationSteps, transport: transportSteps };
+  const errors = [];
+  Object.entries(flows).forEach(([mission, flow]) => {
+    if (flow.length !== 10) errors.push(`${mission}: debe contener exactamente 10 pasos`);
+    flow.forEach((step, index) => {
+      if (!step.title || !step.text || !step.why || !step.observe) errors.push(`${mission} paso ${index + 1}: falta contenido didáctico`);
+      if (!step.target || !$(step.target)) errors.push(`${mission} paso ${index + 1}: control ${step.target || "sin definir"} no existe`);
+      if (typeof step.done !== "function" || typeof step.run !== "function") errors.push(`${mission} paso ${index + 1}: contrato de interacción incompleto`);
+    });
+    const finalStep = flow[flow.length - 1];
+    if (finalStep.target !== "powerBtn") errors.push(`${mission}: el cierre debe realizarse desde ON/OFF`);
+  });
+  if (errors.length) {
+    console.error("Errores de la guía:", errors);
+    $("guideCard").classList.add("guide-error");
+    $("guideTitle").textContent = "La guía necesita revisión";
+    $("guideText").textContent = "Se detectó una inconsistencia interna. No continúes la práctica.";
+    $("guideWhy").textContent = errors.join(" · ");
+    $("guideObserve").textContent = "Comunica el error antes de utilizar resultados.";
+    $("guideAction").disabled = true;
+    $("guideNext").disabled = true;
+    return false;
+  }
+  return true;
+}
+validateGuideContracts();
 $("loginForm").addEventListener("submit", login);
 $("togglePassword").addEventListener("click", () => {
   const i = $("memberPassword"), show = i.type === "password";
@@ -676,9 +702,15 @@ $("surfaceDoseBtn").addEventListener("click", measureSurfaceDose);
 $("oneMeterBtn").addEventListener("click", measureOneMeterDose);
 $("calculateTIBtn").addEventListener("click", calculateTI);
 $("scenario").addEventListener("change", (e) => {
+  clearTimeout(state.advanceTimer);
+  state.step = 0;
+  state.advancing = false;
+  state.inspected = false;
+  state.unitConfirmed = false;
+  state.guideComplete = false;
   resetScenario(e.target.value);
   renderGuide();
-  toast(`Escenario cargado: ${scenarios[e.target.value].label}`);
+  toast(`Escenario cargado: ${scenarios[e.target.value].label}. La guía volvió al paso 1 para asegurar una medición completa.`);
 });
 $("guideAction").addEventListener("click", () => pointTo(activeSteps()[state.step].target));
 $("guidePrev").addEventListener("click", () => goStep(-1));
