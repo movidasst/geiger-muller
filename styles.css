@@ -24,3 +24,39 @@
 .probe-handle{position:relative;padding-top:14px;text-align:center}.probe-handle strong{display:block;color:#e2ecef;font-size:7px;letter-spacing:.08em}.probe-handle small{position:absolute;left:5px;right:5px;bottom:9px;border-top:1px solid rgba(255,255,255,.18);padding-top:4px;color:#a9bbc2;font-size:7px;letter-spacing:.08em}.probe-handle span{height:72px;margin:8px auto 0!important}
 .instrument-stage:not(.dose-probe) .probe-face{box-shadow:inset 0 0 0 3px #222c32,0 0 0 2px #8e9ba0}.instrument-stage:not(.dose-probe) .probe-face:after{content:"";position:absolute;inset:17px;border:1px solid rgba(255,255,255,.32);border-radius:50%;pointer-events:none}
 .guide-card #guideAction{background:#fff;color:var(--teal);border:2px solid var(--teal);box-shadow:none}.guide-card #guideAction:before{content:"◎ ";font-size:18px}
+
+/* Composición profesional del conjunto detector + medidor */
+.instrument-stage{position:relative;background:
+  radial-gradient(circle at 50% 8%,rgba(40,132,158,.34),transparent 34%),
+  linear-gradient(155deg,#0b3b59 0,#061f38 48%,#031426 100%)}
+.instrument-stage:before{content:"";position:absolute;inset:58px 6% auto;height:330px;border:1px solid rgba(99,225,226,.12);border-radius:50%;pointer-events:none}
+.equipment{isolation:isolate;min-height:900px;display:grid;grid-template-rows:250px auto;align-content:start;justify-items:center;gap:34px;padding:38px 12px 48px}
+.equipment:after{content:"EQUIPO DE VIGILANCIA RADIOLÓGICA";position:absolute;z-index:-1;left:50%;bottom:18px;transform:translateX(-50%);width:max-content;max-width:88%;color:rgba(160,220,226,.42);font-size:9px;font-weight:800;letter-spacing:.18em}
+.probe-wrap{position:relative;left:auto;top:auto;width:min(286px,82vw);height:250px;transform:none!important;border:1px solid rgba(126,227,228,.22);border-radius:24px;padding:14px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(0,0,0,.12));box-shadow:inset 0 1px rgba(255,255,255,.09),0 18px 32px rgba(0,0,0,.25)}
+.probe-wrap:before{content:"DETECTOR CONECTADO";position:absolute;left:14px;top:11px;color:#8de3e4;font-size:8px;font-weight:800;letter-spacing:.13em}
+.probe-wrap:after{content:"SOPORTE DE SONDA";position:absolute;right:13px;top:11px;color:rgba(255,255,255,.48);font-size:7px;font-weight:700;letter-spacing:.1em}
+.probe{position:absolute;left:23px;top:43px;transform:rotate(86deg) scale(.68)!important;transform-origin:54px 54px}
+.probe-cable{left:202px;top:93px;width:62px;height:48px;border-left:0;border-top:5px solid #0a1015;border-right:4px solid #0a1015;border-radius:0 24px 0 0}
+.distance{position:absolute;left:16px;right:16px;bottom:13px;margin:0;padding:9px 11px;border-radius:12px;background:rgba(2,16,29,.72)}
+.distance span{color:#9ce3e1;font-size:11px}.distance input{width:100%;accent-color:var(--yellow)}
+.meter{align-self:start;margin:0;transform:translateZ(0);box-shadow:inset 3px 3px 4px rgba(255,255,255,.25),inset -4px -5px 8px rgba(0,0,0,.36),0 34px 48px rgba(0,0,0,.72),0 0 0 1px rgba(151,211,218,.14)}
+.meter:before{box-shadow:inset 0 3px #50606b,0 -7px 18px rgba(90,205,211,.12)}
+@media(max-width:380px){
+  .equipment{min-height:850px;grid-template-rows:228px auto;padding-inline:8px}
+  .probe-wrap{height:228px;width:min(270px,88vw)}
+  .probe{left:17px;top:39px;transform:rotate(86deg) scale(.62)!important}
+  .probe-cable{left:183px;top:88px}
+  .meter{width:min(292px,90vw)}
+}
+@media(min-width:760px){
+  .equipment{min-height:760px;grid-template-columns:220px minmax(320px,350px);grid-template-rows:auto;align-items:center;align-content:center;justify-content:center;gap:58px;padding:46px 24px 62px}
+  .probe-wrap{width:190px;height:520px;padding:16px}
+  .probe{left:39px;top:76px;transform:rotate(-8deg) scale(1)!important;transform-origin:54px 54px}
+  .probe-cable{left:96px;top:330px;width:82px;height:120px;border-top:0;border-right:0;border-left:5px solid #0a1015;border-radius:50%}
+  .distance{left:15px;right:15px;bottom:17px}
+  .meter{width:340px}
+}
+@media(min-width:1100px){
+  .equipment{grid-template-columns:250px 360px;gap:82px}
+  .probe-wrap{width:215px}
+}
