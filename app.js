@@ -2,6 +2,8 @@ const $ = (id) => document.getElementById(id);
 const SUPABASE_URL = "https://lfdmbkzghnwvsapxypvt.supabase.co";
 const KEY = "sb_publishable_bRnkA6PA8-v073nrw9zxiQ_8rVGiOn1";
 const SESSION = "movida-geiger-session", ATTEMPTS = "movida-geiger-attempts";
+let audioContext = null;
+let nextDetectorClickAt = 0;
 const state = { mode: "guided", mission: "presence", step: 0, powered: false, audio: false, light: false, hold: false, unit: "\xB5Sv/h", range: "AUTO", inspected: false, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, distance: 100, speed: 5, scenario: "lab", surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0, timer: null };
 const scenarios = {
   lab: { background: 36, gross: 184, dose: 0.42, surfaceDose: 74, oneMeterDose: 3.4, label: "Mesón de radioisótopos" },
@@ -305,6 +307,47 @@ function togglePower(force) {
     advanceSoon();
   }
 }
+function ensureAudioContext() {
+  const AudioEngine = window.AudioContext || window.webkitAudioContext;
+  if (!AudioEngine) return null;
+  if (!audioContext || audioContext.state === "closed") audioContext = new AudioEngine();
+  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  return audioContext;
+}
+function detectorClick(intensity = 1) {
+  if (!state.audio) return;
+  try {
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const play = () => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+      osc.type = "square";
+      osc.frequency.setValueAtTime(1250 + Math.min(500, intensity * 90), now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(Math.min(0.16, 0.055 + intensity * 0.012), now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    };
+    if (ctx.state === "running") play();
+    else ctx.resume().then(play).catch(() => {});
+  } catch {
+    toast("El navegador bloqueó el audio. Revisa el volumen multimedia y vuelve a pulsar AUDIO.");
+  }
+}
+function emitDetectorClick(reading) {
+  if (!state.audio) return;
+  const now = performance.now();
+  if (now < nextDetectorClickAt) return;
+  const baseline = Math.max(1, state.background || 30);
+  const ratio = Math.max(0.5, reading / baseline);
+  nextDetectorClickAt = now + Math.max(70, 360 / ratio);
+  detectorClick(Math.min(6, ratio));
+}
 function toggleAudio(force) {
   if (!state.powered) {
     toast("Primero enciende el instrumento.");
@@ -312,9 +355,14 @@ function toggleAudio(force) {
     return;
   }
   state.audio = force ?? !state.audio;
+  if (state.audio) {
+    ensureAudioContext();
+    detectorClick(1);
+    setTimeout(() => detectorClick(1.4), 110);
+  }
   updateDisplay();
   renderGuide();
-  toast(state.audio ? "Respuesta audible activada" : "Respuesta audible desactivada");
+  toast(state.audio ? "Audio activado: escucharás dos pulsos de prueba." : "Respuesta audible desactivada");
   if (state.audio) advanceSoon();
 }
 function simulateCount(button, duration, onDone, label) {
@@ -403,13 +451,15 @@ function startScanning() {
     tick++;
     const progress = Math.min(1, tick / 80);
     const hot = progress > 0.58 && progress < 0.72;
+    const count = hot
+      ? randomAround(scenarios[state.scenario].gross, 15)
+      : randomAround(scenarios[state.scenario].background, 5);
     if (hot) {
       state.hotspot = true;
-      const count = randomAround(scenarios[state.scenario].gross, 15);
-      updateDisplay(count);
       $("screenMode").textContent = "INCREMENTO LOCALIZADO";
-      if (state.audio) clickSound();
-    } else updateDisplay(randomAround(scenarios[state.scenario].background, 5));
+    }
+    updateDisplay(count);
+    emitDetectorClick(count);
     if (progress >= 1) {
       clearInterval(state.timer);
       state.scanComplete = true;
@@ -421,20 +471,6 @@ function startScanning() {
       advanceSoon();
     }
   }, 55);
-}
-function clickSound() {
-  try {
-    const C = window.AudioContext || window.webkitAudioContext;
-    if (!C) return;
-    const ctx = new C(), osc = ctx.createOscillator(), gain = ctx.createGain();
-    osc.frequency.value = 950;
-    gain.gain.value = 0.035;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.025);
-  } catch {
-  }
 }
 function confirmHotspot() {
   if (!state.scanComplete || !state.hotspot) {
