@@ -18,3 +18,9 @@
 .instrument-stage.dose-probe .probe-face{width:82px;height:125px;border-width:7px;border-radius:38px 38px 18px 18px;padding:9px;background:linear-gradient(90deg,#263944,#92a3a8 45%,#1a2a34)}
 .instrument-stage.dose-probe .probe-face i{border-radius:28px 28px 10px 10px;background:linear-gradient(90deg,#17242b,#536970 48%,#142129);box-shadow:inset 0 0 12px #000}
 .instrument-stage.dose-probe .probe-neck{margin-top:-2px}.instrument-stage.dose-probe .probe-handle span{color:#9ee7df}
+
+.probe-face{position:relative}.probe-window-label{position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);border:1px solid #111b22;border-radius:5px;padding:2px 6px;background:#d7dde0;color:#15232c;font-size:7px;letter-spacing:.08em;box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.probe-neck{position:relative;border:2px solid #17232b;box-shadow:inset 2px 0 rgba(255,255,255,.18)}.probe-neck i{position:absolute;left:50%;bottom:-9px;width:18px;height:12px;transform:translateX(-50%);border-radius:3px;background:repeating-linear-gradient(90deg,#18242c 0 2px,#718087 2px 4px)}
+.probe-handle{position:relative;padding-top:14px;text-align:center}.probe-handle strong{display:block;color:#e2ecef;font-size:7px;letter-spacing:.08em}.probe-handle small{position:absolute;left:5px;right:5px;bottom:9px;border-top:1px solid rgba(255,255,255,.18);padding-top:4px;color:#a9bbc2;font-size:7px;letter-spacing:.08em}.probe-handle span{height:72px;margin:8px auto 0!important}
+.instrument-stage:not(.dose-probe) .probe-face{box-shadow:inset 0 0 0 3px #222c32,0 0 0 2px #8e9ba0}.instrument-stage:not(.dose-probe) .probe-face:after{content:"";position:absolute;inset:17px;border:1px solid rgba(255,255,255,.32);border-radius:50%;pointer-events:none}
+.guide-card #guideAction{background:#fff;color:var(--teal);border:2px solid var(--teal);box-shadow:none}.guide-card #guideAction:before{content:"◎ ";font-size:18px}

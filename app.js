@@ -47,7 +47,7 @@ const presenceSteps = [
   { title: "Reconoce el área sistemáticamente", text: "Recorre el área lentamente, observa la tendencia y retrocede si la tasa aumenta con rapidez.", why: "el objetivo es caracterizar el campo sin exponerte innecesariamente.", observe: "un incremento sostenido respecto al fondo y no un pulso aislado.", target: "startScan", action: "Iniciar reconocimiento", done: () => state.scanComplete, run: startScanning },
   { title: "Confirma la tasa en un punto definido", text: "Mantén fija la geometría y confirma durante 30 s.", why: "una lectura estable y reproducible permite interpretar y registrar.", observe: "tasa confirmada, valor máximo y unidad µSv/h.", target: "confirmBtn", action: "Confirmar 30 s", done: () => state.confirmed, run: confirmHotspot },
   { title: "Interpreta tasa, tiempo y control", text: "Revisa la tasa indicada, la proyección ilustrativa para 8 h y el nivel de investigación del ejercicio.", why: "µSv/h es rapidez de acumulación; la dosis depende del tiempo real de permanencia.", observe: "el resultado distingue detección, nivel operativo y dosis proyectada; no lo llama límite legal universal.", target: "verdict", action: "Revisar interpretación", done: () => state.confirmed, run: () => advanceSoon() },
-  { title: "Registra y comunica", text: "Documenta detector, calibración, ubicación, fondo, geometría, tasa máxima, tiempo y controles aplicados.", why: "la trazabilidad permite repetir la medición y justificar la decisión ocupacional.", observe: "un cierre completo; si hay incremento relevante, controla el área y comunica al responsable de protección radiológica.", target: "verdict", action: "Finalizar práctica", done: () => state.guideComplete, run: finishGuide }
+  { title: "Registra y comunica", text: "Documenta detector, calibración, ubicación, fondo, geometría, tasa máxima, tiempo y controles aplicados.", why: "la trazabilidad permite repetir la medición y justificar la decisión ocupacional.", observe: "un cierre completo; si hay incremento relevante, controla el área y comunica al responsable de protección radiológica.", target: "powerBtn", action: "Apagar desde el equipo", done: () => state.confirmed && !state.powered, run: () => pointTo("powerBtn") }
 ];
 const sourceSteps = [
   commonInspect, commonPower, commonAudio, doseBackgroundStep,
@@ -56,7 +56,7 @@ const sourceSteps = [
   { title: "Confirma desde una posición segura", text: "Conserva distancia y orientación, realiza una lectura fija de 30 s y no manipules la fuente.", why: "confirmar el gradiente aporta evidencia sin aumentar innecesariamente la exposición.", observe: "tasa reproducible por encima del fondo.", target: "confirmBtn", action: "Confirmar incremento", done: () => state.confirmed, run: confirmHotspot },
   { title: "Toma la decisión ocupacional", text: "Interrumpe el acceso, aumenta la distancia y notifica al responsable radiológico; no intentes identificar el radionucleido con este equipo.", why: "un GM localiza radiación, pero no realiza espectrometría ni identifica la fuente.", observe: "el veredicto indica no tocar, aislar y comunicar.", target: "verdict", action: "Revisar respuesta", done: () => state.confirmed, run: () => advanceSoon() },
   { title: "Registra el hallazgo", text: "Anota croquis, posiciones, distancias, tasas, hora, instrumento y personas notificadas.", why: "el registro facilita una intervención radiológica especializada.", observe: "la ubicación se describe sin mover el objeto.", target: "verdict", action: "Registrar hallazgo", done: () => state.confirmed, run: () => advanceSoon() },
-  { title: "Cierra sin manipular", text: "Mantén el área controlada y entrega la gestión a personal autorizado.", why: "el cierre seguro evita exposición secundaria o pérdida de trazabilidad.", observe: "práctica finalizada con el área aislada.", target: "verdict", action: "Finalizar búsqueda", done: () => state.guideComplete, run: finishGuide }
+  { title: "Cierra sin manipular", text: "Mantén el área controlada y entrega la gestión a personal autorizado.", why: "el cierre seguro evita exposición secundaria o pérdida de trazabilidad.", observe: "práctica finalizada con el área aislada.", target: "powerBtn", action: "Apagar desde el equipo", done: () => state.confirmed && !state.powered, run: () => pointTo("powerBtn") }
 ];
 const contaminationSteps = [
   commonInspect, commonPower,
@@ -66,7 +66,7 @@ const contaminationSteps = [
   { title: "Ajusta la velocidad de barrido", text: "Selecciona 3–6 cm/s y utiliza pasadas paralelas ligeramente solapadas.", why: "un barrido rápido reduce el tiempo sobre una zona activa y puede omitir contaminación.", observe: "5 cm/s y cobertura completa, sin huecos.", target: "scanSpeed", action: "Ajustar a 5 cm/s", done: () => state.speed >= 3 && state.speed <= 6, run: () => { setSpeed(5); $("scanSpeed").value=5; advanceSoon(); } },
   { title: "Barre toda la superficie", text: "Inicia el patrón ordenado y usa el audio para localizar la máxima respuesta.", why: "el barrido sirve para localizar; todavía no es la medición confirmatoria.", observe: "aumento de CPM en una zona y recorrido completo.", target: "startScan", action: "Iniciar barrido", done: () => state.scanComplete, run: startScanning },
   { title: "Confirma en posición fija", text: "Detén la sonda sobre el máximo y cuenta 30 s conservando la geometría.", why: "el conteo fijo permite calcular tasa neta y evaluar la señal frente al fondo.", observe: "conteo bruto, tasa neta, umbral de decisión e intervalo de cobertura.", target: "confirmBtn", action: "Confirmar 30 s", done: () => state.confirmed, run: confirmHotspot },
-  { title: "Interpreta sin inventar actividad", text: "Decide si el efecto está demostrado sobre el fondo. No conviertas a Bq/cm² sin eficiencia, área y radionucleido.", why: "una tasa neta detectada no equivale por sí sola a actividad superficial.", observe: "el veredicto dice detectado/no demostrado y conserva CPM.", target: "verdict", action: "Finalizar evaluación", done: () => state.guideComplete, run: finishGuide }
+  { title: "Interpreta sin inventar actividad", text: "Decide si el efecto está demostrado sobre el fondo. No conviertas a Bq/cm² sin eficiencia, área y radionucleido.", why: "una tasa neta detectada no equivale por sí sola a actividad superficial.", observe: "el veredicto dice detectado/no demostrado y conserva CPM.", target: "powerBtn", action: "Apagar desde el equipo", done: () => state.confirmed && !state.powered, run: () => pointTo("powerBtn") }
 ];
 const transportSteps = [
   commonInspect, commonPower,
@@ -77,7 +77,7 @@ const transportSteps = [
   { title: "Calcula el índice de transporte", text: "Convierte µSv/h a mSv/h, multiplica por 100 y aplica el redondeo correspondiente.", why: "esa operación produce el número adimensional usado para control del transporte.", observe: "por ejemplo, 8,7 µSv/h = 0,0087 mSv/h; ×100 = 0,87, IT mostrado 0,9.", target: "calculateTIBtn", action: "Calcular IT", done: () => state.transportDone, run: calculateTI },
   { title: "Verifica ambos criterios", text: "Revisa simultáneamente IT y máximo superficial para determinar la categoría simulada.", why: "la etiqueta no se decide únicamente con el IT.", observe: "I‑BLANCA, II‑AMARILLA, III‑AMARILLA o fuera del alcance ordinario.", target: "tiResult", action: "Revisar categoría", done: () => state.transportDone, run: () => advanceSoon() },
   { title: "No confundas IT con CSI", text: "El IT se relaciona con exposición externa; el índice de seguridad con respecto a la criticidad aplica a material fisible.", why: "son controles diferentes aunque ambos puedan aparecer en documentación de transporte.", observe: "el resultado permanece identificado como índice de transporte.", target: "tiResult", action: "Comprendí la diferencia", done: () => state.transportDone, run: () => advanceSoon() },
-  { title: "Registra la verificación", text: "Documenta instrumento, calibración, fondo, máximos, distancia, IT, categoría, fecha y responsable.", why: "la trazabilidad forma parte del control del bulto y de la comunicación del riesgo.", observe: "verificación finalizada con todos los datos esenciales.", target: "transportPanel", action: "Finalizar verificación", done: () => state.guideComplete, run: finishGuide }
+  { title: "Registra la verificación", text: "Documenta instrumento, calibración, fondo, máximos, distancia, IT, categoría, fecha y responsable.", why: "la trazabilidad forma parte del control del bulto y de la comunicación del riesgo.", observe: "verificación finalizada con todos los datos esenciales.", target: "powerBtn", action: "Apagar desde el equipo", done: () => state.transportDone && !state.powered, run: () => pointTo("powerBtn") }
 ];
 function activeSteps() {
   return ({ presence: presenceSteps, source: sourceSteps, contamination: contaminationSteps, transport: transportSteps })[state.mission];
@@ -495,11 +495,12 @@ function renderGuide() {
   $("guideText").textContent = s.text;
   $("guideWhy").textContent = s.why;
   $("guideObserve").textContent = s.observe;
-  $("guideAction").textContent = s.action;
+  $("guideAction").textContent = state.step === flow.length - 1 ? "Señalar botón ON/OFF" : "Señalar control en el equipo";
   $("guideBar").style.width = `${(state.step + 1) / flow.length * 100}%`;
   $("guidePrev").disabled = state.step === 0;
   $("guideNext").textContent = state.guideComplete ? "Misión completada ✓" : "Siguiente →";
   $("guideNext").disabled = !s.done() || state.step === flow.length - 1;
+  if (state.step === flow.length - 1 && s.done()) state.guideComplete = true;
   $("guideCard").classList.toggle("complete", state.guideComplete);
   $("coachStep").textContent = `SIGUIENTE \xB7 PASO ${state.step + 1} DE ${flow.length}`;
   $("coachTitle").textContent = s.title;
@@ -539,8 +540,6 @@ function pointTo(id) {
   clearTargets();
   let el = $(id);
   if (!el) return;
-  const actionable = el.matches('button,input,select,[role="button"]');
-  if (!actionable) el = $("guideAction");
   el.classList.add("coach-target");
   el.scrollIntoView({ behavior: "smooth", block: "center" });
   if (el.focus) el.focus({ preventScroll: true });
@@ -571,6 +570,7 @@ function setMission(mission) {
   $("meterLabel").textContent = contamination ? "MONITOR DE CONTAMINACIÓN · SONDA PANCAKE" : "MEDIDOR DE TASA DE DOSIS · RESPUESTA CALIBRADA";
   document.querySelector(".instrument-stage").classList.toggle("dose-probe", !contamination);
   $("probeTypeLabel").textContent = contamination ? "α · β · γ" : "H*(10) · γ";
+  $("probeSerial").textContent = contamination ? "GM‑P45" : "GM‑D10";
   $("techniqueTitle").textContent = contamination ? "Técnica de barrido superficial" : "Técnica de reconocimiento radiológico";
   $("techniqueList").innerHTML = contamination
     ? "<li><b>Distancia:</b> 0,3–0,6 cm, sin tocar.</li><li><b>Velocidad:</b> 3–6 cm/s en este ejercicio.</li><li><b>Trayectoria:</b> pasadas paralelas ligeramente solapadas.</li><li><b>Resultado:</b> CPM bruto y neto; Bq/cm² exige calibración adicional.</li>"
@@ -674,7 +674,7 @@ $("scenario").addEventListener("change", (e) => {
   renderGuide();
   toast(`Escenario cargado: ${scenarios[e.target.value].label}`);
 });
-$("guideAction").addEventListener("click", () => activeSteps()[state.step].run());
+$("guideAction").addEventListener("click", () => pointTo(activeSteps()[state.step].target));
 $("guidePrev").addEventListener("click", () => goStep(-1));
 $("guideNext").addEventListener("click", () => goStep(1));
 $("coachShow").addEventListener("click", () => pointTo(activeSteps()[state.step].target));
