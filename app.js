@@ -157,7 +157,13 @@ function openApp(member, persist = true) {
   $("loginGate").hidden = true;
   $("appShell").hidden = false;
   document.body.classList.remove("auth-locked");
+  document.body.classList.add("simulator-open");
+  history.replaceState(null, "", location.pathname);
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
   setMission(state.mission);
+  requestAnimationFrame(() => window.scrollTo(0, 0));
   setTimeout(() => logout(true), Math.max(0, expiresAt - Date.now()));
 }
 function logout(expired = false) {
