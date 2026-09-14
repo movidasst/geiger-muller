@@ -99,3 +99,18 @@ test("todas las mediciones se ejecutan desde el instrumento", () => {
   assert.match(app, /scanBtn"\)\.addEventListener\("click", startScanning\)/);
   assert.match(app, /calcBtn"\)\.addEventListener\("click", calculateTI\)/);
 });
+
+
+test("COUNT conserva su estructura durante todas las cuentas regresivas", () => {
+  const start = app.indexOf("function simulateCount");
+  const end = app.indexOf("\nfunction measureBackground", start);
+  const source = app.slice(start, end);
+  assert.match(source, /button\.id === "countBtn" \? \$\("countLabel"\) : null/);
+  assert.match(source, /progressLabel\.textContent = value/);
+  assert.match(source, /setProgress\(original\)/);
+});
+
+test("no quedan referencias de ejecución a paneles eliminados", () => {
+  assert.doesNotMatch(app, /querySelector\("\.surface-panel"\)/);
+  assert.doesNotMatch(app, /querySelector\("\.scan-controls label"\)/);
+});
