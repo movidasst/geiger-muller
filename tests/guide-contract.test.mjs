@@ -82,7 +82,7 @@ test("cada misión carga únicamente escenarios compatibles", () => {
 test("el barrido de campo siempre tiene ajuste de velocidad previo", () => {
   for (const name of ["presenceSteps", "sourceSteps"]) {
     const source = flowSource(name);
-    assert.ok(source.indexOf("fieldSpeedStep") < source.indexOf('target: "startScan"'), `${name} inicia el barrido antes de ajustar velocidad`);
+    assert.ok(source.indexOf("fieldSpeedStep") < source.indexOf('target: "scanBtn"'), `${name} inicia el barrido antes de ajustar velocidad`);
   }
   assert.match(app, /Mueve el control desde 10 hasta 5 cm\/s/);
 });
