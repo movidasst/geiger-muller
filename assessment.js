@@ -1,8 +1,8 @@
 const byId = id => document.getElementById(id);
 const decisions = {
   presence: ["Compatible con el fondo del ejercicio", "Incremento inferior al nivel de investigación", "Alcanza o supera el nivel de investigación"],
-  source: ["Registrar sin intervención adicional", "Retirarse, controlar el acceso y comunicar el gradiente"],
-  contamination: ["La señal neta no supera el umbral", "La señal neta supera el umbral"],
+  source: ["Aproximarse al objeto para identificarlo", "Retirarse, controlar el acceso y comunicar el hallazgo"],
+  contamination: ["La señal neta no supera el umbral", "La señal neta supera el umbral", "Cuentas insuficientes: repetir o prolongar"],
   transport: ["Categoría I-BLANCA", "Categoría II-AMARILLA", "Categoría III-AMARILLA", "Fuera del alcance ordinario"]
 };
 
@@ -25,6 +25,7 @@ export function prepareAssessment(state) {
   byId("decision").replaceChildren(new Option("Selecciona una conclusión", ""), ...decisions[state.mission].map((text, index) => new Option(text, String(index))));
   byId("timeOptions").hidden = state.mission !== "contamination" || state.mode !== "free";
   byId("extraTime").hidden = !["presence", "source"].includes(state.mission);
+  byId("readingPrompt").firstChild.textContent = state.mission === "transport" ? "Máximo medido a 1 m (µSv/h)" : state.mission === "contamination" ? "Tasa bruta confirmada (CPM)" : "Tasa confirmada (µSv/h)";
   byId("decisionIT").hidden = state.mission !== "transport";
   byId("learnerIT").required = state.mission === "transport";
   byId("verdict").hidden = true;
@@ -69,11 +70,13 @@ export function installAssessment(state, onInspect, onDecision, toast) {
     const detected = byId("verdict").classList.contains("detected");
     const category = byId("tiCategory").textContent;
     const expected = transport ? decisions.transport.indexOf(category)
+      : state.mission === "source" ? 1
+      : state.mission === "contamination" && !state.countStatistics.sufficient ? 2
       : state.mission === "presence" && detected ? (Number.parseFloat(byId("doseResult").textContent) >= 2.5 ? 2 : 1)
       : Number(detected);
     const choice = Number(byId("decision").value);
     const observed = Number(byId("evidenceReading").value);
-    const reference = Number.parseFloat(byId(transport ? "oneMeterDose" : "grossResult").textContent);
+    const reference = transport ? state.oneMeterDose : state.mission === "contamination" ? state.gross : Number(byId("grossResult").textContent);
     const tiCorrect = !transport || Math.abs(Number(byId("learnerIT").value) - Number(byId("tiResult").textContent)) < 0.001;
     const ok = choice === expected && Math.abs(observed - reference) < 0.011 && tiCorrect;
     const feedback = ok ? "La conclusión y los valores concuerdan con las mediciones." : "Revisa tu conclusión y los valores registrados con la interpretación del ejercicio.";
@@ -94,7 +97,10 @@ export function installAssessment(state, onInspect, onDecision, toast) {
       "La Movida de SST+ · Registro de simulación OSR", new Date().toLocaleString("es-VE"),
       byId("scenario").selectedOptions[0].text, byId("activeProbe").textContent,
       "Fondo: " + byId("backgroundResult").textContent + " " + byId("backgroundUnit").textContent,
-      "Distancia seleccionada: " + byId("distanceValue").textContent,
+      "Inspección aceptada: " + byId("inspectDetails").textContent,
+      ...(state.route.marked !== null ? ["Punto marcado: " + (state.route.marked + 1), "Distancia registrada: " + state.route.readings[state.route.marked].distance + " cm"] : []),
+      ...(state.backgroundObservation ? ["Fondo: " + state.backgroundObservation.counts + " cuentas en " + state.backgroundObservation.seconds + " s"] : []),
+      ...(state.grossObservation ? ["Confirmación: " + state.grossObservation.counts + " cuentas en " + state.grossObservation.seconds + " s"] : []),
       "Lectura confirmada: " + s.observed + (state.mission === "contamination" ? " CPM" : " µSv/h"),
       ...(s.ti !== null ? ["Máximo superficial: " + byId("surfaceDose").textContent, "IT declarado: " + s.ti] : []),
       s.conclusion, "Destinatario: " + s.recipient, "Comunicación: " + s.message, s.feedback

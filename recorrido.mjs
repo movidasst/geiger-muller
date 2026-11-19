@@ -36,3 +36,18 @@ export function maximumSelected(readings, selected) {
   const values = faces.map((_, i) => readings[i]);
   return selected !== null && values.every(Number.isFinite) && readings[selected] === Math.max(...values);
 }
+
+// Classroom trend flag for comparing mapped positions. Formal detection is decided
+// separately from the fixed-position count and its background observation.
+export function observedGradient(route, backgroundCpm) {
+  const extrema = route?.extrema;
+  return Boolean(extrema && extrema.highPoint !== extrema.lowPoint
+    && extrema.high >= 1.5 * Math.max(1, extrema.low, backgroundCpm));
+}
+
+export function trackExtrema(route, point, rate) {
+  if (!route.extrema) route.extrema = { low: rate, high: rate, lowPoint: point, highPoint: point };
+  const extrema = route.extrema;
+  if (rate < extrema.low) Object.assign(extrema, { low: rate, lowPoint: point });
+  if (rate > extrema.high) Object.assign(extrema, { high: rate, highPoint: point });
+}

@@ -1,4 +1,6 @@
-import { fieldPoints, surfacePoints, faces, newRoute, expectedRate, faceReading, maximumSelected } from "./recorrido.mjs";
+import { readDraft, saveDraft, discardDraft, restoreForm } from "./practice-draft.js";
+let practiceOwner = null;
+import { fieldPoints, surfacePoints, faces, newRoute, expectedRate, faceReading, maximumSelected, observedGradient, trackExtrema } from "./recorrido.mjs";
 import { installAssessment, prepareAssessment, showDecision, equipmentCard } from "./assessment.js";
 import { contaminationRate, countStatistics, simulateCounts } from "./metrology.mjs";
 const $ = (id) => document.getElementById(id);
@@ -121,7 +123,7 @@ const transportSteps = [
   doseBackgroundStep,
   { title: "Localiza el máximo superficial", text: "Ajusta la referencia superficial a 0 cm en el croquis, elige cada cara y mide con COUNT. Marca la cara de mayor lectura.", why: "la categoría de etiqueta también depende del máximo superficial.", observe: "máximo superficial en µSv/h y condición física del bulto.", target: "countBtn", action: "Medir máximo superficial", done: () => state.surfaceDose !== null, run: measureSurfaceDose },
   { title: "Mide exactamente a 1 metro", text: "Ajusta 1,0 m desde la superficie externa. Repite las seis caras y selecciona el máximo de esta segunda serie.", why: "el IT se calcula con la tasa a 1 m de la superficie externa, no del centro.", observe: "lectura a 1 m expresada en µSv/h.", target: "countBtn", action: "Medir a 1 metro", done: () => state.oneMeterDose !== null, run: measureOneMeterDose },
-  { title: "Calcula el índice de transporte", text: "Convierte µSv/h a mSv/h, multiplica por 100 y aplica el redondeo correspondiente.", why: "esa operación produce el número adimensional usado para control del transporte.", observe: "por ejemplo, 8,7 µSv/h = 0,0087 mSv/h; ×100 = 0,87, IT mostrado 0,9.", target: "calcBtn", action: "Calcular IT", done: () => state.transportDone, run: calculateTI },
+  { title: "Calcula el índice de transporte", text: "Convierte µSv/h a mSv/h, multiplica por 100 y aplica el redondeo correspondiente.", why: "esa operación produce el número adimensional usado para control del transporte.", observe: "anota el resultado adimensional con el redondeo del ejercicio antes de comparar tu respuesta.", target: "calcBtn", action: "Calcular IT", done: () => state.transportDone, run: calculateTI },
   { title: "Verifica ambos criterios", text: "Revisa simultáneamente IT y máximo superficial para determinar la categoría simulada.", why: "la etiqueta no se decide únicamente con el IT.", observe: "I‑BLANCA, II‑AMARILLA, III‑AMARILLA o fuera del alcance ordinario.", target: "decisionPanel", action: "Registrar categoría", done: () => state.submission?.ok, run: () => advanceSoon() },
   { title: "No confundas IT con CSI", text: "El IT se relaciona con exposición externa; el índice de seguridad con respecto a la criticidad aplica a material fisible.", why: "son controles diferentes aunque ambos puedan aparecer en documentación de transporte.", observe: "el resultado permanece identificado como índice de transporte.", target: "tiResult", action: "Comprendí la diferencia", done: () => state.transportDone, run: () => advanceSoon() },
   { title: "Registra la verificación", text: "Documenta instrumento, calibración, fondo, máximos, distancia, IT, categoría, fecha y responsable.", why: "la trazabilidad forma parte del control del bulto y de la comunicación del riesgo.", observe: "verificación finalizada con todos los datos esenciales.", target: "powerBtn", action: "Apagar desde el equipo", done: () => state.transportDone && state.submission?.ok && !state.powered, run: () => pointTo("powerBtn") }
@@ -155,7 +157,8 @@ function setLogin(text) {
 function openApp(member, persist = true) {
   const name = [member?.nombres, member?.apellidos].filter(Boolean).join(" ") || member?.name || "integrante";
   const expiresAt = member?.expiresAt || Date.now() + 20 * 6e4;
-  if (persist) sessionStorage.setItem(SESSION, JSON.stringify({ name, expiresAt }));
+  practiceOwner = member.practiceOwner || null;
+  if (persist) sessionStorage.setItem(SESSION, JSON.stringify({ name, expiresAt, practiceOwner }));
   $("memberName").textContent = name;
   $("loginGate").hidden = true;
   $("appShell").hidden = false;
@@ -165,11 +168,36 @@ function openApp(member, persist = true) {
   window.scrollTo(0, 0);
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
-  setMission(state.mission);
+  const draft = practiceOwner && readDraft(practiceOwner);
+  setMission(draft?.progress.mission || state.mission);
+  if (draft && missionScenarios[state.mission].includes(draft.progress.scenario)) {
+    resetScenario(draft.progress.scenario);
+    Object.assign(state, draft.progress, { advancing: false, timer: null, audio: false, hold: false });
+    $("scenario").value = state.scenario;
+    $("distance").value = state.distance;
+    $("scanSpeed").value = state.speed;
+    setDistance(state.distance);
+    setSpeed(state.speed);
+    equipmentCard(state, state.instrumentFault);
+    restoreForm(draft);
+    if (state.confirmed) calculateResults();
+    setMode(state.mode);
+    renderRoute();
+    updateDisplay(state.powered ? state.gross ?? state.background : null);
+    toast("Práctica recuperada. Las mediciones interrumpidas pueden repetirse.");
+  }
+  setTimeout(() => { $("expiryWarning").hidden = false; }, Math.max(0, expiresAt - Date.now() - 120000));
   requestAnimationFrame(() => window.scrollTo(0, 0));
   setTimeout(() => logout(true), Math.max(0, expiresAt - Date.now()));
 }
+window.addEventListener("pagehide", () => saveDraft(practiceOwner, state));
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) saveDraft(practiceOwner, state);
+});
 function logout(expired = false) {
+  if (expired) saveDraft(practiceOwner, state);
+  else discardDraft();
+  practiceOwner = null;
   sessionStorage.removeItem(SESSION);
   clearInterval(state.timer);
   location.reload();
@@ -208,7 +236,9 @@ async function login(e) {
       return;
     }
     localStorage.removeItem(ATTEMPTS);
-    openApp(m);
+    const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(cedula));
+    const ownerKey = Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, "0")).join("");
+    openApp({ ...m, practiceOwner: ownerKey });
     toast("Acceso validado");
   } catch (err) {
     console.error(err);
@@ -324,7 +354,7 @@ function cancelMeasurement() {
 
 function togglePower(force) {
   if (!state.powered && !state.inspected) { inspectProbe(); return; }
-  if (state.powered && (state.confirmed || state.transportDone) && !state.submission?.ok) {
+  if (state.powered && !$("countBtn").disabled && (state.confirmed || state.transportDone) && !state.submission?.ok) {
     toast("Antes de cerrar el caso, registra y revisa tu decisión.");
     pointTo("decisionPanel");
     return;
@@ -335,6 +365,7 @@ function togglePower(force) {
     state.hold = false;
     cancelMeasurement();
   }
+  renderRoute();
   updateDisplay();
   renderGuide();
   if (state.powered) {
@@ -438,11 +469,12 @@ function measureBackground() {
     const countsMode = state.mission === "contamination";
     $("backgroundResult").textContent = countsMode ? state.background : doseFromCpm(state.background).toFixed(2);
     if (countsMode) $("backgroundUnit").textContent = `CPM · ${state.backgroundObservation.counts} cuentas en ${seconds} s simulados`;
+    recordSample(state.background);
     updateDisplay(state.background);
     renderGuide();
     toast("Medición de fondo registrada");
     advanceSoon();
-  }, "Midiendo · tiempo simulado");
+  }, "Midiendo");
 }
 function setDistance(value) {
   state.distance = Number(value);
@@ -514,11 +546,12 @@ function renderRoute() {
     const reading = readings[i];
     button.lastChild.textContent = reading === undefined ? "Sin medir" : transport ? reading.toLocaleString("es") + " µSv/h" : formatInstrument(reading.cpm) + " " + state.unit;
     button.setAttribute("aria-pressed", String(route.selected === i));
-    button.disabled = complete;
+    button.disabled = complete || !state.powered;
   });
   const mark = panel.querySelector('[data-action="mark"]');
   mark.textContent = transport ? "Registrar máximo de esta serie" : "Marcar punto para confirmar";
-  mark.disabled = complete || route.selected === null;
+  mark.disabled = complete || !state.powered || route.selected === null;
+  panel.querySelector('[data-action="withdraw"]').disabled = !state.powered;
   panel.querySelector('[data-action="withdraw"]').hidden = transport || surface || complete;
   panel.querySelector(".route-status").textContent = transport
     ? complete ? "Dos máximos registrados." : (stage === "surface" ? "Serie en superficie · 0 cm indicados" : "Serie a 1,0 m de las superficies externas") + " · " + Object.keys(readings).length + "/6 caras"
@@ -552,6 +585,7 @@ function sampleStation(point) {
   const expected = expectedRate(state.mission, state.scenario, scenario.background, peak, point, state.distance);
   const count = randomAround(expected, Math.max(1, Math.sqrt(expected) / 2));
   state.route.readings[point] = { cpm: count, expected, distance: state.distance };
+  trackExtrema(state.route, point, count);
   updateDisplay(count);
   emitDetectorClick(count);
 }
@@ -633,12 +667,16 @@ function confirmHotspot() {
     state.confirmed = true;
     $("grossResult").textContent = countsMode ? state.gross.toLocaleString("es") : doseFromCpm(state.gross).toFixed(2);
     if (countsMode) $("grossUnit").textContent = `CPM · ${state.grossObservation.counts} cuentas en ${seconds} s simulados`;
+    state.submission = null;
+    $("decisionFeedback").textContent = "";
+    $("saveReport").hidden = true;
+    recordSample(state.gross);
     calculateResults();
     updateDisplay(state.gross);
     renderGuide();
     toast(state.mission === "contamination" ? "Conteo estacionario completado" : "Tasa de dosis confirmada");
     advanceSoon();
-  }, "Midiendo · tiempo simulado");
+  }, "Midiendo");
 }
 function calculateResults() {
   const g = state.gross;
@@ -654,6 +692,15 @@ function calculateResults() {
   $("detectionResult").textContent = sufficient ? `${detection.toFixed(1)} CPM · β 5 %` : sparse;
   $("coverageResult").textContent = sufficient ? `${low.toFixed(1)} a ${high.toFixed(1)} CPM · diferencia de tasas, 95 % aprox.` : sparse;
   const v = $("verdict");
+  if (state.mission === "source") {
+    const gradient = observedGradient(state.route, state.background);
+    const heading = gradient ? "Variación espacial marcada en el recorrido" : "Objeto sospechoso pendiente de evaluación";
+    const location = state.route?.withdrawn ? "desde el acceso tras retirarte" : "en el punto marcado";
+    const finding = !sufficient ? "tiene cuentas insuficientes" : statistics.detected ? "supera el umbral de decisión" : "es compatible con el fondo";
+    v.className = "verdict " + (gradient || statistics.detected ? "detected" : "neutral");
+    v.innerHTML = "<b>" + heading + "</b><span>La confirmación " + location + " " + finding + ". Conserva las lecturas del recorrido, evita manipular el objeto, controla el acceso y comunica al responsable de protección radiológica.</span>";
+    return;
+  }
   if (!sufficient) {
     v.className = "verdict neutral";
     v.innerHTML = "<b>Conteo insuficiente para esta aproximación</b><span>Repite la medición con mayor tiempo de conteo y revisa el fondo.</span>";
@@ -661,7 +708,7 @@ function calculateResults() {
   }
   if (statistics.detected) {
     v.className = "verdict detected";
-    v.innerHTML = state.mission === "source" ? "<b>Gradiente compatible con una fuente</b><span>No la toques. Al\xE9jate, controla el \xE1rea y comunica al responsable de protecci\xF3n radiol\xF3gica.</span>" : state.mission === "presence" ? dose >= 2.5 ? "<b>Supera el nivel de investigaci\xF3n del ejercicio</b><span>Controla el \xE1rea y eval\xFAa tiempo, distancia, blindaje, duraci\xF3n real y dosimetr\xEDa personal. No confundas este nivel operativo con un l\xEDmite legal universal.</span>" : "<b>Radiaci\xF3n detectada sobre el fondo</b><span>La tasa permanece bajo el nivel de investigaci\xF3n del ejercicio. Registra el resultado y conserva los controles radiol\xF3gicos.</span>" : "<b>Efecto neto detectado</b><span>La tasa neta supera el umbral de decisi\xF3n. Delimita el \xE1rea y aplica el procedimiento radiol\xF3gico autorizado.</span>";
+    v.innerHTML = state.mission === "presence" ? dose >= 2.5 ? "<b>Supera el nivel de investigaci\xF3n del ejercicio</b><span>Controla el \xE1rea y eval\xFAa tiempo, distancia, blindaje, duraci\xF3n real y dosimetr\xEDa personal. No confundas este nivel operativo con un l\xEDmite legal universal.</span>" : "<b>Radiaci\xF3n detectada sobre el fondo</b><span>La tasa permanece bajo el nivel de investigaci\xF3n del ejercicio. Registra el resultado y conserva los controles radiol\xF3gicos.</span>" : "<b>Efecto neto detectado</b><span>La tasa neta supera el umbral de decisi\xF3n. Delimita el \xE1rea y aplica el procedimiento radiol\xF3gico autorizado.</span>";
   } else {
     v.className = "verdict clear";
     v.innerHTML = "<b>No demostrado sobre el fondo</b><span>El resultado no supera el umbral. Esto no demuestra ausencia absoluta de radiaci\xF3n.</span>";
@@ -696,6 +743,7 @@ function measurePackageFace(stage) {
     }
     const dose = faceReading(stage, nominal, point);
     state.route[stage][point] = dose;
+    recordSample(dose / doseFromCpm(1));
     updateDisplay(dose / doseFromCpm(1));
     renderRoute();
     toast(faces[point] + " · " + dose.toLocaleString("es") + " µSv/h");
@@ -734,7 +782,7 @@ function calculateTI() {
     return;
   }
   const raw = state.oneMeterDose / 10;
-  const ti = raw <= 0.05 ? 0 : Math.ceil(raw * 10) / 10;
+  const ti = raw <= 0.05 ? 0 : Math.ceil(state.oneMeterDose) / 10;
   state.transportDone = true;
   $("tiResult").textContent = ti.toFixed(ti === 0 ? 0 : 1);
   let category;
@@ -744,10 +792,19 @@ function calculateTI() {
   else category = "Fuera de los l\xEDmites ordinarios simulados";
   $("tiCategory").textContent = category;
   renderGuide();
-  toast(`\xCDndice de transporte: ${ti}`);
+  toast("Series completas. Registra tu IT y la categoría.");
   advanceSoon();
 }
 function renderGuide() {
+  document.querySelector(".active-config").hidden = state.mode === "free" && !state.inspected;
+  const reportUnit = state.mission === "contamination" ? "CPM" : "µSv/h";
+  const summary = $("readingSummary");
+  if (summary) {
+    const value = $("grossResult").textContent;
+    summary.textContent = state.mission === "transport" ? "Superficie: " + $("surfaceDose").textContent + " · A 1 m: " + $("oneMeterDose").textContent
+      : "Fondo: " + $("backgroundResult").textContent + " " + reportUnit + " · Confirmación: " + value + " " + reportUnit;
+    if (state.confirmed || state.transportDone) summary.textContent += state.submission?.ok ? " · Decisión registrada" : " · Decisión pendiente";
+  }
   if (state.confirmed || state.transportDone) showDecision(state);
   const guided = state.mode === "guided", flow = activeSteps();
   $("guideCard").hidden = !guided;
@@ -764,9 +821,9 @@ function renderGuide() {
   $("countLabel").textContent = s.target === "countBtn" ? (s.action.includes("60") ? "60 s" : s.action.includes("superficial") ? "SUPERFICIE" : s.action.includes("1 metro") ? "A 1 m" : "30 s") : "MEDIR";
   $("guideBar").style.width = `${(state.step + 1) / flow.length * 100}%`;
   $("guidePrev").disabled = state.step === 0;
+  if (state.step === flow.length - 1 && s.done()) state.guideComplete = true;
   $("guideNext").textContent = state.guideComplete ? "Misión completada ✓" : "Siguiente →";
   $("guideNext").disabled = !s.done() || state.step === flow.length - 1;
-  if (state.step === flow.length - 1 && s.done()) state.guideComplete = true;
   $("guideCard").classList.toggle("complete", state.guideComplete);
   $("coachStep").textContent = `SIGUIENTE \xB7 PASO ${state.step + 1} DE ${flow.length}`;
   $("coachTitle").textContent = s.title;
@@ -860,8 +917,8 @@ function setMission(mission) {
     $("distance").value = 1.5;
     setDistance(1.5);
   } else {
-    $("distance").value = 50;
-    setDistance(50);
+    $("distance").value = mission === "transport" ? 0 : 50;
+    setDistance(Number($("distance").value));
   }
   $("scanSpeed").value = 10;
   setSpeed(10);
@@ -871,8 +928,14 @@ function setMission(mission) {
   toast({ contamination: "Misi\xF3n t\xE9cnica: contaminaci\xF3n en CPM", presence: "Misi\xF3n principal: tasa de dosis en \xB5Sv/h", source: "Misi\xF3n: b\xFAsqueda de fuente en \xB5Sv/h", transport: "Misi\xF3n: \xEDndice de transporte" }[mission]);
 }
 function resetScenario(value) {
+  clearTimeout(state.advanceTimer);
   cancelMeasurement();
-  Object.assign(state, { sampleRateCpm: null, countStatistics: null, samples: [], audioReviewed: false, scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0 });
+  Object.assign(state, { step: 0, powered: false, advancing: false, audio: false, sampleRateCpm: null, countStatistics: null, samples: [], audioReviewed: false, scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0 });
+  state.backgroundObservation = state.grossObservation = null;
+  state.hold = false;
+  $("hours").value = 8;
+  $("sampleSeconds").value = 30;
+  $("backgroundUnit").textContent = $("grossUnit").textContent = state.mission === "contamination" ? "CPM" : "µSv/h";
   prepareAssessment(state);
   $("backgroundResult").textContent = "\u2014";
   $("grossResult").textContent = "\u2014";

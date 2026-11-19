@@ -23,3 +23,15 @@ test('cada máximo requiere las seis caras y puede corresponder a caras distinta
   assert.equal(maximumSelected(r.metre, 1), false);
   assert.equal(maximumSelected(r.metre, 4), true);
 });
+
+test('retirarse conserva la tendencia espacial y el punto de confirmación independiente', async () => {
+  const { observedGradient, trackExtrema } = await import('../recorrido.mjs');
+  const r = newRoute();
+  trackExtrema(r, 0, 31);
+  trackExtrema(r, 4, 130);
+  trackExtrema(r, 0, 30);
+  assert.equal(observedGradient(r, 32), true);
+  const single = newRoute();
+  trackExtrema(single, 4, 130);
+  assert.equal(observedGradient(single, 32), false);
+});
