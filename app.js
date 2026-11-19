@@ -9,7 +9,7 @@ const scenarios = {
   lab: { background: 36, gross: 184, dose: 0.42, surfaceDose: 74, oneMeterDose: 3.4, label: "Mesón de radioisótopos" },
   nuclear: { background: 44, gross: 328, dose: 1.18, surfaceDose: 286, oneMeterDose: 8.7, label: "Área de medicina nuclear" },
   waste: { background: 29, gross: 112, dose: 0.31, surfaceDose: 4.2, oneMeterDose: 0.34, label: "Almacén de residuos radiactivos" },
-  gauge: { background: 34, gross: 486, dose: 2.4, surfaceDose: 740, oneMeterDose: 13.2, label: "Medidor nuclear industrial" },
+  gauge: { background: 34, gross: 486, dose: 3.2, surfaceDose: 740, oneMeterDose: 13.2, label: "Medidor nuclear industrial" },
   scrap: { background: 31, gross: 690, dose: 4.8, surfaceDose: 1280, oneMeterDose: 22.5, label: "Fuente sospechosa en chatarra" },
   orphanStore: { background: 33, gross: 820, dose: 6.2, surfaceDose: 1450, oneMeterDose: 31, label: "Objeto sin identificación en almacén" },
   packageWhite: { background: 34, gross: 92, dose: 0.22, surfaceDose: 3.0, oneMeterDose: 0.3, label: "Bulto categoría I-BLANCA" },
@@ -55,11 +55,11 @@ const commonPower = {
   target: "powerBtn", action: "Encender equipo", done: () => state.powered, run: () => togglePower(true)
 };
 const commonAudio = {
-  title: "Activa la respuesta audible",
-  text: "Activa AUDIO para reconocer cambios de la tasa mientras mantienes la vista en el recorrido.",
+  title: "Elige la señal visual o audible",
+  text: "Pulsa «Usar solo señal visual» o activa AUDIO para seguir también la cadencia de los pulsos.",
   why: "la cadencia de pulsos ayuda a advertir un gradiente sin fijar la mirada en la pantalla.",
-  observe: "el indicador AUDIO queda activo; más pulsos significan mayor respuesta, no identificación del radionucleido.",
-  target: "audioBtn", action: "Activar audio", done: () => state.audio, run: () => toggleAudio(true)
+  observe: "observa la lectura y la barra; más pulsos significan mayor respuesta, no identificación del radionucleido.",
+  target: "audioBtn", action: "Elegir señal", done: () => state.audioReviewed, run: () => toggleAudio(true)
 };
 const doseBackgroundStep = {
   title: "Establece la tasa de fondo",
@@ -87,7 +87,7 @@ const presenceSteps = [
   commonInspect, commonPower,
   { title: "Confirma la magnitud correcta", text: "Usa la lectura principal Ḣ*(10) en µSv/h del detector compensado. CPM/CPS quedan como diagnóstico interno.", why: "la tasa de conteo no equivale universalmente a tasa de dosis.", observe: "la pantalla indica µSv/h y “TASA DE DOSIS H*(10)”.", target: "unitsBtn", action: "Confirmar µSv/h", done: () => state.unitConfirmed && state.unit === "µSv/h", run: ensureDoseUnit },
   doseBackgroundStep, commonAudio,
-  { title: "Coloca la distancia inicial", text: "Mueve el deslizador que está en 50 cm hasta que la etiqueta marque exactamente 1,0 m.", why: "tiempo, distancia y blindaje reducen la exposición durante el reconocimiento.", observe: "la etiqueta superior del control debe mostrar 1,0 m; al alcanzarlo la guía avanza automáticamente.", target: "distance", action: "Mover distancia hasta 1,0 m", done: () => state.distance >= 100, run: () => pointTo("distance") },
+  { title: "Coloca la distancia inicial", text: "Mueve el deslizador que está en 50 cm hasta que la etiqueta marque exactamente 1,0 m.", why: "tiempo, distancia y blindaje reducen la exposición durante el reconocimiento.", observe: "la etiqueta superior del control debe mostrar 1,0 m; al alcanzarlo la guía avanza automáticamente.", target: "distance", action: "Mover distancia hasta 1,0 m", done: () => state.distance === 100, run: () => pointTo("distance") },
   fieldSpeedStep,
   { title: "Reconoce el área sistemáticamente", text: "Recorre el área lentamente, observa la tendencia y retrocede si la tasa aumenta con rapidez.", why: "el objetivo es caracterizar el campo sin exponerte innecesariamente.", observe: "un incremento sostenido respecto al fondo y no un pulso aislado.", target: "scanBtn", action: "Iniciar reconocimiento", done: () => state.scanComplete, run: startScanning },
   { title: "Confirma e interpreta la tasa", text: "Mantén fija la geometría, confirma durante 30 s y luego observa automáticamente la tasa, la proyección para 8 h y el nivel de investigación del ejercicio.", why: "una lectura estable y reproducible permite interpretar y registrar; µSv/h es rapidez y µSv es acumulación.", observe: "tasa confirmada, valor máximo, proyección y veredicto ocupacional, sin presentarlo como límite legal universal.", target: "countBtn", action: "Confirmar 30 s", done: () => state.confirmed, run: confirmHotspot },
@@ -95,7 +95,7 @@ const presenceSteps = [
 ];
 const sourceSteps = [
   commonInspect, commonPower, commonAudio, doseBackgroundStep,
-  { title: "Establece una distancia segura", text: "Mueve el deslizador desde 50 cm hasta que marque 1,0 m. Nunca recojas ni manipules el objeto sospechoso.", why: "una fuente huérfana puede producir un gradiente desconocido; primero protege a las personas.", observe: "ruta de retirada disponible y etiqueta de distancia en 1,0 m; la guía avanzará al alcanzarla.", target: "distance", action: "Mover distancia hasta 1,0 m", done: () => state.distance >= 100, run: () => pointTo("distance") },
+  { title: "Selecciona el punto inicial de este caso", text: "Mueve el deslizador desde 50 cm hasta que marque 1,0 m. Este metro pertenece al croquis simulado. La distancia de protección real depende del campo y del procedimiento.", why: "una fuente huérfana puede producir un gradiente desconocido; primero protege a las personas.", observe: "ruta de retirada disponible y etiqueta de distancia en 1,0 m; la guía avanzará al alcanzarla.", target: "distance", action: "Mover distancia hasta 1,0 m", done: () => state.distance === 100, run: () => pointTo("distance") },
   fieldSpeedStep,
   { title: "Busca el gradiente, no el objeto", text: "Haz un recorrido lento y ordenado. Si la tasa crece rápidamente, retrocede y delimita.", why: "localizar no significa aproximarse hasta tocar; la seguridad manda sobre la precisión.", observe: "aumento sostenido de µSv/h y de la señal audible al cambiar de posición.", target: "scanBtn", action: "Iniciar búsqueda segura", done: () => state.scanComplete, run: startScanning },
   { title: "Confirma desde una posición segura", text: "Conserva distancia y orientación, realiza una lectura fija de 30 s y no manipules la fuente.", why: "confirmar el gradiente aporta evidencia sin aumentar innecesariamente la exposición.", observe: "tasa reproducible por encima del fondo.", target: "countBtn", action: "Confirmar incremento", done: () => state.confirmed, run: confirmHotspot },
@@ -244,6 +244,11 @@ function formatInstrument(cpm, unit = state.unit) {
   if (unit === "CPS") return (cpm / 60).toFixed(2);
   return Math.round(cpm);
 }
+function recordSample(cpm) {
+  state.samples ??= [];
+  state.samples.push(cpm);
+  if (state.samples.length > 10) state.samples.shift();
+}
 function updateDisplay(value) {
   const cpm = value ?? (state.powered ? state.background ?? randomAround(scenarios[state.scenario].background, 2) : null);
   $("meter").classList.toggle("on", state.powered);
@@ -256,7 +261,7 @@ function updateDisplay(value) {
   if (typeof cpm === "number") state.maxReading = Math.max(state.maxReading, cpm);
   $("reading").textContent = shown;
   $("unitLabel").textContent = state.unit;
-  $("avgValue").textContent = state.background === null ? "\u2014" : formatInstrument(state.background);
+  $("avgValue").textContent = state.samples?.length ? formatInstrument(state.samples.reduce((a, b) => a + b, 0) / state.samples.length) : "—";
   $("maxValue").textContent = state.maxReading ? formatInstrument(state.maxReading) : "\u2014";
   $("screenRange").textContent = state.range;
   $("screenMode").textContent = state.powered ? state.scanStarted && !state.scanComplete ? "RECONOCIMIENTO EN CURSO" : state.confirmed ? "MEDICI\xD3N CONFIRMADA" : state.unit === "\xB5Sv/h" ? "TASA DE DOSIS H*(10)" : "TASA DE CONTEO" : "EQUIPO APAGADO";
@@ -300,11 +305,21 @@ function toggleHold() {
   updateDisplay(state.gross ?? state.background);
   toast(state.hold ? "Lectura retenida" : "Retenci\xF3n liberada");
 }
+function cancelMeasurement() {
+  clearInterval(state.timer);
+  state.timer = null;
+  $("countBtn").disabled = false;
+  $("scanBtn").disabled = false;
+  $("countLabel").textContent = "MEDIR";
+  if (!state.scanComplete) state.scanStarted = false;
+}
+
 function togglePower(force) {
   state.powered = force ?? !state.powered;
   if (!state.powered) {
     state.audio = false;
-    clearInterval(state.timer);
+    state.hold = false;
+    cancelMeasurement();
   }
   updateDisplay();
   renderGuide();
@@ -346,6 +361,7 @@ function detectorClick(intensity = 1) {
   }
 }
 function emitDetectorClick(reading) {
+  recordSample(reading);
   if (!state.audio) return;
   const now = performance.now();
   if (now < nextDetectorClickAt) return;
@@ -361,6 +377,7 @@ function toggleAudio(force) {
     return;
   }
   state.audio = force ?? !state.audio;
+  state.audioReviewed = true;
   if (state.audio) {
     ensureAudioContext();
     detectorClick(1);
@@ -369,7 +386,7 @@ function toggleAudio(force) {
   updateDisplay();
   renderGuide();
   toast(state.audio ? "Audio activado: escucharás dos pulsos de prueba." : "Respuesta audible desactivada");
-  if (state.audio) advanceSoon();
+  advanceSoon();
 }
 function simulateCount(button, duration, onDone, label) {
   if (!state.powered) {
@@ -377,7 +394,7 @@ function simulateCount(button, duration, onDone, label) {
     pointTo("powerBtn");
     return;
   }
-  if (button.disabled) return;
+  if (button.disabled || (state.scanStarted && !state.scanComplete)) return;
   button.disabled = true;
   let left = duration;
   const progressLabel = button.id === "countBtn" ? $("countLabel") : null;
@@ -386,11 +403,11 @@ function simulateCount(button, duration, onDone, label) {
     if (progressLabel) progressLabel.textContent = value;
     else button.textContent = value;
   };
-  setProgress(`${label} ${left} s`);
+  setProgress(`${label} ${left} s sim.`);
   clearInterval(state.timer);
   state.timer = setInterval(() => {
     left -= 5;
-    setProgress(`${label} ${Math.max(0, left)} s`);
+    setProgress(`${label} ${Math.max(0, left)} s sim.`);
     if (left <= 0) {
       clearInterval(state.timer);
       button.disabled = false;
@@ -411,7 +428,7 @@ function measureBackground() {
 }
 function setDistance(value) {
   state.distance = Number(value);
-  $("distanceValue").textContent = state.distance >= 100 ? "1,0 m" : `${state.distance.toFixed(1).replace(".", ",")} cm`;
+  $("distanceValue").textContent = state.distance >= 100 ? (state.distance / 100).toLocaleString("es-VE", { minimumFractionDigits: 1 }) + " m" : `${state.distance.toFixed(1).replace(".", ",")} cm`;
   renderGuide();
   if (state.mission === "contamination") {
     if (state.distance === 0) toast("No apoyes la ventana sobre la superficie.");
@@ -693,8 +710,8 @@ function setMission(mission) {
   toast({ contamination: "Misi\xF3n t\xE9cnica: contaminaci\xF3n en CPM", presence: "Misi\xF3n principal: tasa de dosis en \xB5Sv/h", source: "Misi\xF3n: b\xFAsqueda de fuente en \xB5Sv/h", transport: "Misi\xF3n: \xEDndice de transporte" }[mission]);
 }
 function resetScenario(value) {
-  clearInterval(state.timer);
-  Object.assign(state, { scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0 });
+  cancelMeasurement();
+  Object.assign(state, { sampleRateCpm: null, countStatistics: null, samples: [], audioReviewed: false, scenario: value, background: null, gross: null, scanStarted: false, scanComplete: false, hotspot: false, confirmed: false, surfaceDose: null, oneMeterDose: null, transportDone: false, guideComplete: false, unitConfirmed: false, lastReading: null, maxReading: 0 });
   $("backgroundResult").textContent = "\u2014";
   $("grossResult").textContent = "\u2014";
   $("netResult").textContent = state.mission === "contamination" ? "\u2014 CPM" : "\u2014 \xB5Sv/h";
@@ -747,10 +764,11 @@ $("togglePassword").addEventListener("click", () => {
   $("togglePassword").textContent = show ? "Ocultar" : "Mostrar";
 });
 $("logoutBtn").addEventListener("click", () => logout());
+$("silentBtn").addEventListener("click", () => toggleAudio(false));
 $("lightBtn").addEventListener("click", toggleLight);
 $("unitsBtn").addEventListener("click", cycleUnits);
 $("rangeBtn").addEventListener("click", cycleRange);
-$("avgBtn").addEventListener("click", () => toast("AVG muestra el promedio estabilizado del periodo activo."));
+$("avgBtn").addEventListener("click", () => toast("AVG promedia hasta las diez últimas lecturas adquiridas."));
 $("holdBtn").addEventListener("click", toggleHold);
 $("resetBtn").addEventListener("click", () => {
   resetScenario(state.scenario);
