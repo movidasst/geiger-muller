@@ -1,0 +1,56 @@
+.login-brand img {
+  width: 11rem;
+  height: auto;
+  max-width: 65%;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+.login-hero .hero-copy {
+  margin: clamp(1.75rem, 5vw, 4.5rem) 0 1.25rem;
+}
+.login-card .access-help,
+.access-privacy a {
+  color: #00636c;
+  font-weight: 650;
+  text-underline-offset: .18em;
+}
+.login-card .access-help {
+  display: inline-block;
+  padding-block: .65rem;
+}
+.access-privacy {margin-top: 1.25rem; font-size: 1rem;}
+.access-privacy summary, .instrument-preview summary {cursor: pointer; font-weight: 650;}
+.access-privacy p {line-height: 1.5;}
+.instrument-preview {position: relative; z-index: 1; width: min(100%, 24rem);}
+.instrument-preview summary {padding-block: .65rem; color: #fff;}
+.instrument-preview img {display: block; width: 100%; height: auto; border-radius: 1rem;}
+@media(min-width: 760px) {
+  .login-hero .login-brand img {width: 13rem;}
+}
+.jump-access {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  margin-bottom: .5rem;
+  padding: .6rem 1rem;
+  color: var(--navy);
+  background: white;
+  border-radius: .5rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.desktop-instrument {display: none;}
+@media(min-width: 760px) {
+  .jump-access, .instrument-preview {display: none;}
+  .desktop-instrument {
+    display: block;
+    position: relative;
+    z-index: 1;
+    width: min(100%, 27rem);
+    height: clamp(15rem, 36vh, 24rem);
+    object-fit: contain;
+    border-radius: 1rem;
+    background: #09233a;
+  }
+}

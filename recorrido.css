@@ -1,0 +1,10 @@
+.route-card{margin:1rem 0 0;padding:1rem;background:#eff9f8;color:#173344;border:1px solid #a8d4d5;border-radius:14px}
+.route-card h3,.route-card p{margin:0 0 .6rem}
+.route-card p,.route-card button{font-size:.9375rem;line-height:1.35}
+.route-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;margin:.6rem 0}
+.route-card button{min-height:44px;border:1px solid #79999e;background:white;color:#173344;padding:.4rem;border-radius:7px;font-weight:600}
+.route-card button[aria-pressed=true]{background:#005d65;color:white;border-color:#005d65}
+.route-card button:focus-visible{outline:3px solid #00205b;outline-offset:2px}
+.route-card button small{display:block;font-size:.8125rem;font-weight:400}
+.route-actions{display:flex;flex-wrap:wrap;gap:.4rem}
+.route-card [role=status]{min-height:1.4em;font-weight:600}

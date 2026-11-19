@@ -69,3 +69,18 @@ body.simulator-open #appShell{display:block}
 @media(min-width:760px){
   body.simulator-open .topbar{position:relative;z-index:20}
 }
+
+.learning-card{padding:1rem;background:white;color:#102b42;border:1px solid #bad7da;border-radius:1rem;margin:1rem 0}
+.learning-card form,.learning-card label,#extraTime{display:grid;gap:.5rem}
+.learning-card form{gap:.85rem}
+.learning-card input,.learning-card textarea,.learning-card select,#timeOptions select,#extraTime input{max-width:100%;min-width:0;padding:.65rem;font:inherit;border:1px solid #74929e;border-radius:.4rem}
+.learning-card textarea{min-height:5rem}
+.learning-card button,#silentBtn,#probeTarget{padding:.55rem .8rem;min-height:40px;border-radius:.5rem;border:1px solid #007b85;background:#e4f7f5;color:#003e44;font-weight:700}
+#silentBtn{display:block;margin:.6rem auto}
+.session-warning{padding:.75rem;text-align:center;background:#fff1c9;color:#433200}
+.probe-settings label,.screen-icons,.round small,.key small,.meter-label{font-size:.75rem}
+#scenarioLabel{font-size:.8rem;font-weight:700}
+#decisionFeedback{font-weight:700}
+#extraTime,#timeOptions{font-size:.9rem;margin:.7rem 0}
+:focus-visible{outline:3px solid #ffb600;outline-offset:2px}
+@media(max-width:759px){.probe-wrap{height:365px}.data-panel{min-width:0}.key small{line-height:1.15}.coach{max-width:calc(100vw - 1rem)}}
