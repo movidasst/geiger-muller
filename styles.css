@@ -85,3 +85,5 @@ body.simulator-open #appShell{display:block}
 :focus-visible{outline:3px solid #ffb600;outline-offset:2px}
 @media(max-width:759px){.probe-wrap{height:365px}.data-panel{min-width:0}.key small{line-height:1.15}.coach{max-width:calc(100vw - 1rem)}}
 .reading-summary{margin:.75rem 0 0;padding:.8rem 1rem;background:#e2f4f1;color:#073d48;border-radius:.65rem;font-weight:650;font-variant-numeric:tabular-nums}
+
+.coach button{max-width:52%;white-space:normal}

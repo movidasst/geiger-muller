@@ -597,6 +597,7 @@ function chooseStation(point) {
   }
   state.route.selected = point;
   renderRoute();
+  if (state.mission === "transport") renderGuide();
 }
 
 function finishRoute(withdraw) {
@@ -746,6 +747,7 @@ function measurePackageFace(stage) {
     recordSample(dose / doseFromCpm(1));
     updateDisplay(dose / doseFromCpm(1));
     renderRoute();
+    renderGuide();
     toast(faces[point] + " · " + dose.toLocaleString("es") + " µSv/h");
   }, "Midiendo");
 }
@@ -795,6 +797,39 @@ function calculateTI() {
   toast("Series completas. Registra tu IT y la categoría.");
   advanceSoon();
 }
+function sixthStepAction() {
+  if (state.mode !== "guided" || state.step !== 5) return null;
+  if (activeSteps()[5].done()) return { label: "Continuar al paso 7", run: () => goStep(1) };
+  if (state.mission === "source") return {
+    label: "Ajustar a 5 cm/s y continuar",
+    run() { $("scanSpeed").value = 5; setSpeed(5); goStep(1); }
+  };
+  if (state.mission !== "transport") {
+    const surface = state.mission === "contamination";
+    return {
+      label: surface ? "Ajustar a 0,5 cm y continuar" : "Ajustar a 1,0 m y continuar",
+      run() { const value = surface ? 0.5 : 100; $("distance").value = value; setDistance(value); goStep(1); }
+    };
+  }
+  if (state.distance !== 100) return {
+    label: "Ajustar a 1,0 m y elegir cara",
+    run() { $("distance").value = 100; setDistance(100); pointTo("routePanel"); }
+  };
+  const { metre, selected } = state.route;
+  if (Object.keys(metre).length === faces.length) return {
+    label: "Elegir y registrar el máximo", run: () => pointTo("routePanel")
+  };
+  if (selected !== null && metre[selected] === undefined) return {
+    label: "Medir cara seleccionada", run: () => $("countBtn").click()
+  };
+  return { label: "Elegir una cara pendiente", run: () => pointTo("routePanel") };
+}
+function useGuideControl(fallback) {
+  const action = sixthStepAction();
+  if (action) action.run();
+  else if (fallback) pointTo(fallback);
+  else pointTo(activeSteps()[state.step].target);
+}
 function renderGuide() {
   document.querySelector(".active-config").hidden = state.mode === "free" && !state.inspected;
   const reportUnit = state.mission === "contamination" ? "CPM" : "µSv/h";
@@ -826,6 +861,9 @@ function renderGuide() {
   $("guideNext").disabled = !s.done() || state.step === flow.length - 1;
   $("guideCard").classList.toggle("complete", state.guideComplete);
   $("coachStep").textContent = `SIGUIENTE \xB7 PASO ${state.step + 1} DE ${flow.length}`;
+  const action = sixthStepAction();
+  if (action) $("guideAction").textContent = action.label;
+  $("coachShow").textContent = action ? action.label : "Mostrarme";
   $("coachTitle").textContent = s.title;
   $("coachHint").textContent = `Te llevar\xE9 al control exacto: ${s.action.toLowerCase()}`;
   clearTargets();
@@ -837,6 +875,8 @@ function goStep(delta) {
     pointTo(flow[state.step].target);
     return;
   }
+  clearTimeout(state.advanceTimer);
+  state.advancing = false;
   state.step = next;
   renderGuide();
   pointTo(activeSteps()[state.step].target);
@@ -1056,10 +1096,10 @@ $("scenario").addEventListener("change", (e) => {
   renderGuide();
   toast(`Escenario cargado: ${scenarios[e.target.value].label}. La guía volvió al paso 1 para asegurar una medición completa.`);
 });
-$("guideAction").addEventListener("click", () => pointTo(state.step === activeSteps().length - 1 && !state.submission?.ok ? "decisionPanel" : activeSteps()[state.step].target));
+$("guideAction").addEventListener("click", () => useGuideControl(state.step === activeSteps().length - 1 && !state.submission?.ok ? "decisionPanel" : activeSteps()[state.step].target));
 $("guidePrev").addEventListener("click", () => goStep(-1));
 $("guideNext").addEventListener("click", () => goStep(1));
-$("coachShow").addEventListener("click", () => pointTo(activeSteps()[state.step].target));
+$("coachShow").addEventListener("click", () => useGuideControl());
 $("modeBtn").addEventListener("click", () => toast("CPM localiza incrementos; \xB5Sv/h exige una calibraci\xF3n adecuada."));
 
 installAssessment(state, acceptProbe, () => { renderGuide(); advanceSoon(); }, toast);
